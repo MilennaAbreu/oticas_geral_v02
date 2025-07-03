@@ -1,10 +1,10 @@
 <?php
 $id = $_GET['id'] ?? null;
-$pageTitle = $id ? 'Editar Categorias' : 'Novo Categorias';
+$pageTitle = $id ? 'Editar Categoria' : 'Nova Categoria';
 include 'header.php';
 $nome = '';
 if($id){
-  $stmt = $pdo->prepare("SELECT id, nome FROM CATEGORIAS WHERE id=?");
+  $stmt = $pdo->prepare("SELECT id, nome FROM CATEGORIA_PRODUTO WHERE id=?");
   $stmt->execute([$id]);
   $row = $stmt->fetch(PDO::FETCH_ASSOC);
   if($row){
@@ -14,10 +14,10 @@ if($id){
 if($_SERVER['REQUEST_METHOD']==='POST'){
   $nome = $_POST['nome'];
   if($id){
-    $stmt = $pdo->prepare("UPDATE CATEGORIAS SET nome=? WHERE id=?");
+    $stmt = $pdo->prepare("UPDATE CATEGORIA_PRODUTO SET nome=? WHERE id=?");
     $stmt->execute([$nome, $id]);
   } else {
-    $stmt = $pdo->prepare("INSERT INTO CATEGORIAS (nome) VALUES (?)");
+    $stmt = $pdo->prepare("INSERT INTO CATEGORIA_PRODUTO (nome) VALUES (?)");
     $stmt->execute([$nome]);
   }
   header('Location: categorias_list.php'); exit;

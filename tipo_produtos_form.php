@@ -1,10 +1,10 @@
 <?php
 $id = $_GET['id'] ?? null;
-$pageTitle = $id ? 'Editar Tipo Produtos' : 'Novo Tipo Produtos';
+$pageTitle = $id ? 'Editar Tipo de Produto' : 'Novo Tipo de Produto';
 include 'header.php';
 $nome = '';
 if($id){
-  $stmt = $pdo->prepare("SELECT id, nome FROM TIPO_PRODUTOS WHERE id=?");
+  $stmt = $pdo->prepare("SELECT id, nome FROM TIPO_PRODUTO WHERE id=?");
   $stmt->execute([$id]);
   $row = $stmt->fetch(PDO::FETCH_ASSOC);
   if($row){
@@ -14,10 +14,10 @@ if($id){
 if($_SERVER['REQUEST_METHOD']==='POST'){
   $nome = $_POST['nome'];
   if($id){
-    $stmt = $pdo->prepare("UPDATE TIPO_PRODUTOS SET nome=? WHERE id=?");
+    $stmt = $pdo->prepare("UPDATE TIPO_PRODUTO SET nome=? WHERE id=?");
     $stmt->execute([$nome, $id]);
   } else {
-    $stmt = $pdo->prepare("INSERT INTO TIPO_PRODUTOS (nome) VALUES (?)");
+    $stmt = $pdo->prepare("INSERT INTO TIPO_PRODUTO (nome) VALUES (?)");
     $stmt->execute([$nome]);
   }
   header('Location: tipo_produtos_list.php'); exit;

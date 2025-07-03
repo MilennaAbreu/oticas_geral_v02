@@ -3,23 +3,44 @@ $pageTitle = 'Novo Produto';
 include 'header.php';
 
 $id = $_GET['id'] ?? null;
-$produto = ['NOME'=>'','VALOR_UNITARIO'=>'','ESTOQUE_ATUAL'=>'','ID_CATEGORIA'=>'','ID_TIPO'=>'','IMAGEM'=>''];
+$produto = [
+    'NOME'           => '',
+    'ID_TIPO'        => '',
+    'ID_CATEGORIA'   => '',
+    'MARCA'          => '',
+    'CODIGO'         => '',
+    'UNIDADE_MEDIDA' => 'UN',
+    'VALOR_UNITARIO' => '',
+    'ESTOQUE_ATUAL'  => '',
+    'IMAGEM'         => '',
+    'STATUS'         => 'ATIVO'
+];
 
 if ($id) {
     $stmt = $pdo->prepare("SELECT * FROM PRODUTO WHERE ID = ?");
     $stmt->execute([$id]);
     $produto = $stmt->fetch(PDO::FETCH_ASSOC);
 }
-$categorias = $pdo->query("SELECT * FROM CATEGORIAS")->fetchAll(PDO::FETCH_ASSOC);
-$tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTOS")->fetchAll(PDO::FETCH_ASSOC);
+$categorias = $pdo->query("SELECT * FROM CATEGORIA_PRODUTO")->fetchAll(PDO::FETCH_ASSOC);
+$tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4"><?= $id ? 'Editar' : 'Novo' ?> Produto</h2>
   <form method="POST" action="produtos_save.php" enctype="multipart/form-data" class="space-y-4">
     <input type="hidden" name="id" value="<?= $id ?>">
     <div><label>Nome</label><input name="nome" value="<?= $produto['NOME'] ?>" class="border p-2 w-full rounded" required></div>
+    <div><label>Marca</label><input name="marca" value="<?= $produto['MARCA'] ?>" class="border p-2 w-full rounded"></div>
+    <div><label>Código</label><input name="codigo" value="<?= $produto['CODIGO'] ?>" class="border p-2 w-full rounded"></div>
+    <div><label>Unidade de Medida</label><input name="unidade_medida" value="<?= $produto['UNIDADE_MEDIDA'] ?>" class="border p-2 w-full rounded"></div>
     <div><label>Valor Unitário</label><input name="valor_unitario" value="<?= $produto['VALOR_UNITARIO'] ?>" class="border p-2 w-full rounded" required></div>
     <div><label>Estoque Atual</label><input name="estoque_atual" value="<?= $produto['ESTOQUE_ATUAL'] ?>" class="border p-2 w-full rounded" required></div>
+    <div>
+      <label>Status</label>
+      <select name="status" class="border p-2 w-full rounded">
+        <option value="ATIVO" <?= $produto['STATUS']=='ATIVO' ? 'selected':'' ?>>ATIVO</option>
+        <option value="INATIVO" <?= $produto['STATUS']=='INATIVO' ? 'selected':'' ?>>INATIVO</option>
+      </select>
+    </div>
     <div>
       <label>Categoria</label>
       <div class="flex">
