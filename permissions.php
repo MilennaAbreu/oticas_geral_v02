@@ -16,7 +16,7 @@ function requireRole(string ...$roles): void {
 
 function userCompanies(PDO $pdo): array {
     if (!isset($_SESSION['user'])) return [];
-    $stmt = $pdo->prepare('SELECT ID_EMPRESA FROM USUARIO_EMPRESA WHERE ID_USUARIO=?');
+    $stmt = $pdo->prepare('SELECT EMPRESA_ID FROM USUARIO_EMPRESA WHERE USUARIO_ID=?');
     $stmt->execute([$_SESSION['user']]);
     return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }

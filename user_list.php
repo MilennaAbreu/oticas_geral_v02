@@ -9,8 +9,8 @@ $canEdit   = hasRole('ADMINISTRADOR','DIRETORIA');
 $stmt = $pdo->query("SELECT u.id, u.nome, u.username, u.permissoes,
         GROUP_CONCAT(e.nome SEPARATOR ', ') AS empresas
         FROM USUARIO u
-        LEFT JOIN USUARIO_EMPRESA ue ON ue.ID_USUARIO = u.id
-        LEFT JOIN EMPRESA e ON e.ID = ue.ID_EMPRESA
+        LEFT JOIN USUARIO_EMPRESA ue ON ue.USUARIO_ID = u.id
+        LEFT JOIN EMPRESA e ON e.ID = ue.EMPRESA_ID
         GROUP BY u.id, u.nome, u.username, u.permissoes");
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
