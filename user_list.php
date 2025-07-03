@@ -3,9 +3,10 @@ $pageTitle = 'Usuários';
 include 'header.php';
 
 function columnExists(PDO $pdo, string $table, string $column): bool {
-    $stmt = $pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
-    $stmt->execute([$column]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    $sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$table, $column]);
+    return $stmt->fetchColumn() > 0;
 }
 
 // User list logic
@@ -13,12 +14,12 @@ $permissoes = $_SESSION['permissoes'];
 $canDelete = hasRole('ADMINISTRADOR');
 $canEdit   = hasRole('ADMINISTRADOR','DIRETORIA');
 try {
-    if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
+    if (columnExists($pdo, 'USUARIO_EMPRESA', 'ID_EMPRESA')) {
         $stmt = $pdo->query("SELECT u.id, u.nome, u.username, u.permissoes,
             GROUP_CONCAT(e.nome SEPARATOR ', ') AS empresas
             FROM USUARIO u
-            LEFT JOIN USUARIO_EMPRESA ue ON ue.id_usuario = u.id
-            LEFT JOIN EMPRESA e ON e.id = ue.id_empresa
+            LEFT JOIN USUARIO_EMPRESA ue ON ue.ID_USUARIO = u.id
+            LEFT JOIN EMPRESA e ON e.id = ue.ID_EMPRESA
             GROUP BY u.id, u.nome, u.username, u.permissoes");
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {

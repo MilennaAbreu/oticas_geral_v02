@@ -4,9 +4,10 @@ require_once 'auth.php';
 require_once 'permissions.php';
 
 function columnExists(PDO $pdo, string $table, string $column): bool {
-    $stmt = $pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
-    $stmt->execute([$column]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    $sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$table, $column]);
+    return $stmt->fetchColumn() > 0;
 }
 $id = $_GET['id'] ?? null;
 requireRole('ADMINISTRADOR','DIRETORIA');
@@ -38,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, permissoes=? WHERE id=?");
             $stmt->execute([$nome, $username, $permissoes, $id]);
         }
-        if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
-            $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE id_usuario=?")->execute([$id]);
+        if (columnExists($pdo, 'USUARIO_EMPRESA', 'ID_EMPRESA')) {
+            $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE ID_USUARIO=?")->execute([$id]);
         }
     } else {
         $stmt = $pdo->prepare("INSERT INTO USUARIO (nome, username, senha, permissoes) VALUES (?,?,?,?)");
@@ -48,8 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$error) {
-        if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
-            $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (id_usuario, id_empresa) VALUES (?,?)");
+        if (columnExists($pdo, 'USUARIO_EMPRESA', 'ID_EMPRESA')) {
+            $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (ID_USUARIO, ID_EMPRESA) VALUES (?,?)");
             foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
         }
         header('Location: user_list.php');
@@ -65,8 +66,8 @@ if ($id) {
     $nome = $row['nome'];
     $username = $row['username'];
     $permissoes = $row['permissoes'];
-    if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
-        $sel = $pdo->prepare("SELECT id_empresa FROM USUARIO_EMPRESA WHERE id_usuario=?");
+    if (columnExists($pdo, 'USUARIO_EMPRESA', 'ID_EMPRESA')) {
+        $sel = $pdo->prepare("SELECT ID_EMPRESA FROM USUARIO_EMPRESA WHERE ID_USUARIO=?");
         $sel->execute([$id]);
         $empresas_selected = $sel->fetchAll(PDO::FETCH_COLUMN);
     }
