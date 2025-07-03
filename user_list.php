@@ -10,7 +10,8 @@ function columnExists(PDO $pdo, string $table, string $column): bool {
 
 // User list logic
 $permissoes = $_SESSION['permissoes'];
-$canDelete = strpos($permissoes, 'ADMINISTRADOR') !== false || strpos($permissoes, 'DIRETOR') !== false;
+$canDelete = hasRole('ADMINISTRADOR');
+$canEdit   = hasRole('ADMINISTRADOR','DIRETORIA');
 try {
     if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
         $stmt = $pdo->query("SELECT u.id, u.nome, u.username, u.permissoes,
@@ -35,7 +36,9 @@ try {
 <div class="container mx-auto">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-2xl font-semibold">Cadastro de Usuários</h2>
+    <?php if($canEdit): ?>
     <button class="add-btn bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" onclick="window.location.href='user_form.php'">Novo Usuário</button>
+    <?php endif; ?>
   </div>
   <table id="userTable" class="display w-full">
     <thead>
@@ -50,7 +53,9 @@ try {
             <td class="border-t px-4 py-2"><?= htmlspecialchars($u['permissoes']) ?></td>
             <td class="border-t px-4 py-2"><?= htmlspecialchars($u['empresas']) ?></td>
             <td class="table-actions">
+                <?php if($canEdit && !(hasRole('DIRETORIA') && $u['permissoes']==='ADMINISTRADOR')): ?>
                 <a href="user_form.php?id=<?= $u['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+                <?php endif; ?>
                 <?php if($canDelete): ?>
                 <a href="user_delete.php?id=<?= $u['id'] ?>" onclick="return confirm('Excluir este usuário?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
                 <?php endif; ?>

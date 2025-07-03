@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'auth.php';
+require_once 'permissions.php';
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -28,7 +29,7 @@ require_once 'auth.php';
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
-    .sidebar { background-color: #f8f9fa; width: 4rem; transition: width .3s; }
+    .sidebar { background-color: #f8f9fa; width: 4rem; transition: width .3s; min-height: 100vh; }
     .sidebar.expanded { width: 12rem; }
     .sidebar:not(.expanded) .label { display: none; }
     .menu-item { display: flex; align-items: center; padding: .75rem 1rem; color: #1F2937; cursor: pointer; transition: background .2s; }
@@ -152,5 +153,9 @@ require_once 'auth.php';
         </ul>
       </li>
     </ul>
+    <a href="logout.php" class="menu-item mt-auto">
+      <i class="fas fa-sign-out-alt w-6 h-6" style="color:#8E070D;"></i>
+      <span class="label ml-3">Logout</span>
+    </a>
   </div>
   <div class="main ml-16 transition-all duration-300 p-6">

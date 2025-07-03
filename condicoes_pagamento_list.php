@@ -2,7 +2,7 @@
 $pageTitle = 'Condições de Pagamento';
 include 'header.php';
 $permissoes = $_SESSION['permissoes'];
-$canDelete = strpos($permissoes,'ADMINISTRADOR')!==false || strpos($permissoes,'DIRETOR')!==false;
+$canDelete = hasRole('ADMINISTRADOR','DIRETORIA');
 $hasJuros = false;
 $hasCondicao = false;
 try {

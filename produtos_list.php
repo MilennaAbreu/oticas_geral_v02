@@ -3,7 +3,7 @@ $pageTitle = 'Produtos';
 include 'header.php';
 
 $permissoes = $_SESSION['permissoes'];
-$canDelete  = strpos($permissoes,'ADMINISTRADOR')!==false || strpos($permissoes,'DIRETOR')!==false;
+$canDelete  = hasRole('ADMINISTRADOR','DIRETORIA');
 
 $sql = "SELECT p.ID,
                p.NOME,

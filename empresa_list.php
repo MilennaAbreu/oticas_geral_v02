@@ -2,7 +2,7 @@
 $pageTitle = 'Empresas';
 include 'header.php';
 $permissoes = $_SESSION['permissoes'];
-$canDelete = strpos($permissoes,'ADMINISTRADOR')!==false||strpos($permissoes,'DIRETOR')!==false||strpos($permissoes,'ADMINISTRATIVO')!==false;
+$canDelete = hasRole('ADMINISTRADOR','DIRETORIA','ADMINISTRATIVO');
 $stmt = $pdo->query("SELECT id,nome,endereco,telefone FROM EMPRESA");
 $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>

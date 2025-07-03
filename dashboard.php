@@ -5,7 +5,7 @@ include 'header.php';
 // Definir permissões e período
 $permissoes = $_SESSION['permissoes'];
 $isAdmin = strpos($permissoes, 'ADMINISTRADOR') !== false;
-$isDiretor = strpos($permissoes, 'DIRETOR') !== false;
+$isDiretor = strpos($permissoes, 'DIRETORIA') !== false;
 $showDashboard = $isAdmin || $isDiretor;
 
 $start = $_GET['start'] ?? date('Y-m-01');

@@ -2,7 +2,7 @@
 $pageTitle = 'Marcas';
 include 'header.php';
 $permissoes = $_SESSION['permissoes'];
-$canDelete = strpos($permissoes,'ADMINISTRADOR')!==false || strpos($permissoes,'DIRETOR')!==false;
+$canDelete = hasRole('ADMINISTRADOR','DIRETORIA');
 $stmt = $pdo->query("SELECT id, nome FROM MARCA_PRODUTO");
 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $error = isset($_GET['erro']);

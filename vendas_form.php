@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'auth.php';
+require_once 'permissions.php';
 
 $id = $_GET['id'] ?? null;
 $sale = [
@@ -36,7 +37,15 @@ $condicoes = $pdo->query("SELECT ID, NOME FROM CONDICAO_PAGAMENTO ORDER BY NOME"
 $metodos = $pdo->query("SELECT ID, NOME FROM METODO_PAGAMENTO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $fretes = $pdo->query("SELECT ID, DESCRICAO FROM FRETE ORDER BY DESCRICAO")->fetchAll(PDO::FETCH_ASSOC);
 $cidades = $pdo->query("SELECT ID, CONCAT(NOME,'/',UF) AS NOME FROM CIDADE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
-$empresas = $pdo->query("SELECT ID, NOME_FANTASIA FROM EMPRESA ORDER BY NOME_FANTASIA")->fetchAll(PDO::FETCH_ASSOC);
+$empresaIds = userCompanies($pdo);
+if(!hasRole('ADMINISTRADOR','DIRETORIA') && $empresaIds){
+    $in = implode(',', array_fill(0,count($empresaIds),'?'));
+    $stmt = $pdo->prepare("SELECT ID, NOME_FANTASIA FROM EMPRESA WHERE ID IN ($in) ORDER BY NOME_FANTASIA");
+    $stmt->execute($empresaIds);
+    $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $empresas = $pdo->query("SELECT ID, NOME_FANTASIA FROM EMPRESA ORDER BY NOME_FANTASIA")->fetchAll(PDO::FETCH_ASSOC);
+}
 
 $pageTitle = $id ? 'Editar Venda' : 'Nova Venda';
 include 'header.php';

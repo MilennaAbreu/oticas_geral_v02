@@ -2,7 +2,7 @@
 $pageTitle = 'Frete';
 include 'header.php';
 $permissoes = $_SESSION['permissoes'];
-$canDelete = strpos($permissoes,'ADMINISTRADOR')!==false || strpos($permissoes,'DIRETOR')!==false;
+$canDelete = hasRole('ADMINISTRADOR','DIRETORIA');
 $stmt = $pdo->query("SELECT id, descricao, valor, status FROM FRETE");
 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $error = isset($_GET['erro']);

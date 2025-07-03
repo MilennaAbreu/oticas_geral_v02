@@ -2,8 +2,17 @@
 $pageTitle = 'Vendas';
 include 'header.php';
 
-$stmt = $pdo->query("SELECT v.ID, DATE_FORMAT(v.DATA_VENDA,'%d/%m/%Y') AS DATA_VENDA, c.NOME AS CLIENTE, v.VALOR_TOTAL, v.STATUS FROM VENDAS v LEFT JOIN CLIENTE c ON c.ID=v.ID_CLIENTE ORDER BY v.ID DESC");
+$allowed = userCompanies($pdo);
+if(!hasRole('ADMINISTRADOR','DIRETORIA') && $allowed){
+    $in = implode(',', array_fill(0,count($allowed),'?'));
+    $sql = "SELECT v.ID, DATE_FORMAT(v.DATA_VENDA,'%d/%m/%Y') AS DATA_VENDA, c.NOME AS CLIENTE, v.VALOR_TOTAL, v.STATUS FROM VENDAS v LEFT JOIN CLIENTE c ON c.ID=v.ID_CLIENTE WHERE v.ID_EMPRESA IN ($in) ORDER BY v.ID DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($allowed);
+} else {
+    $stmt = $pdo->query("SELECT v.ID, DATE_FORMAT(v.DATA_VENDA,'%d/%m/%Y') AS DATA_VENDA, c.NOME AS CLIENTE, v.VALOR_TOTAL, v.STATUS FROM VENDAS v LEFT JOIN CLIENTE c ON c.ID=v.ID_CLIENTE ORDER BY v.ID DESC");
+}
 $vendas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$canDelete = hasRole('ADMINISTRADOR');
 ?>
 <h2 class="text-2xl font-semibold mb-4">Cadastro de Vendas</h2>
 <button class="add-btn bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" onclick="window.location.href='vendas_form.php'">Nova Venda</button>
@@ -28,7 +37,9 @@ $vendas = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <td class="border-t px-4 py-2"><?= htmlspecialchars($v['STATUS']) ?></td>
       <td class="table-actions">
         <a href="vendas_form.php?id=<?= $v['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+        <?php if($canDelete): ?>
         <a href="vendas_delete.php?id=<?= $v['ID'] ?>" onclick="return confirm('Excluir esta venda?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
+        <?php endif; ?>
       </td>
     </tr>
     <?php endforeach; ?>

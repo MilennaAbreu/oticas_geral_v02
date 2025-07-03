@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'auth.php';
+require_once 'permissions.php';
 
 function columnExists(PDO $pdo, string $table, string $column): bool {
     $stmt = $pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
@@ -8,13 +9,15 @@ function columnExists(PDO $pdo, string $table, string $column): bool {
     return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
 }
 $id = $_GET['id'] ?? null;
+requireRole('ADMINISTRADOR','DIRETORIA');
 
 $nome = $username = $permissoes = '';
+$error = '';
 $empresas_selected = [];
 
 // Fetch empresas and perfis
 $emps = $pdo->query("SELECT id, nome FROM EMPRESA ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
-$perfis = ['ADMINISTRADOR','DIRETOR','ADMINISTRATIVO','VENDEDOR'];
+$perfis = ['ADMINISTRADOR','DIRETORIA','ADMINISTRATIVO','VENDEDOR'];
 
 // Handle submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -25,7 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $permissoes = $_POST['permissoes'];
     $empresas_selected = $_POST['empresas'] ?? [];
 
-    if ($id) {
+    if(hasRole('DIRETORIA') && $permissoes === 'ADMINISTRADOR'){
+        $error = 'Diretoria não pode atribuir perfil ADMINISTRADOR';
+    } elseif ($id) {
         if ($hashed) {
             $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, senha=?, permissoes=? WHERE id=?");
             $stmt->execute([$nome, $username, $hashed, $permissoes, $id]);
@@ -42,12 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = $pdo->lastInsertId();
     }
 
-    if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
-        $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (id_usuario, id_empresa) VALUES (?,?)");
-        foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
+    if (!$error) {
+        if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
+            $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (id_usuario, id_empresa) VALUES (?,?)");
+            foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
+        }
+        header('Location: user_list.php');
+        exit();
     }
-    header('Location: user_list.php');
-    exit();
 }
 
 // Load existing
@@ -68,6 +75,9 @@ $pageTitle = $id ? 'Editar Usuário' : 'Novo Usuário';
 include 'header.php';
 ?>
 <div class="container mx-auto">
+    <?php if($error): ?>
+    <p class="text-red-600 mb-4"><?= htmlspecialchars($error) ?></p>
+    <?php endif; ?>
     <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>
     <form id="userForm" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
