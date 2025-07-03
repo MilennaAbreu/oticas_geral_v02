@@ -4,17 +4,24 @@ include 'header.php';
 $permissoes = $_SESSION['permissoes'];
 $canDelete = strpos($permissoes,'ADMINISTRADOR')!==false || strpos($permissoes,'DIRETOR')!==false;
 $hasJuros = false;
+$hasCondicao = false;
 try {
     $chk = $pdo->query("SHOW COLUMNS FROM CONDICAO_PAGAMENTO LIKE 'juros'");
     $hasJuros = $chk->fetch(PDO::FETCH_ASSOC) ? true : false;
 } catch (PDOException $e) {
     $hasJuros = false;
 }
-if ($hasJuros) {
-    $stmt = $pdo->query("SELECT id, nome, juros, condicao FROM CONDICAO_PAGAMENTO");
-} else {
-    $stmt = $pdo->query("SELECT id, nome, condicao FROM CONDICAO_PAGAMENTO");
+try {
+    $chk = $pdo->query("SHOW COLUMNS FROM CONDICAO_PAGAMENTO LIKE 'condicao'");
+    $hasCondicao = $chk->fetch(PDO::FETCH_ASSOC) ? true : false;
+} catch (PDOException $e) {
+    $hasCondicao = false;
 }
+
+$cols = ['id','nome'];
+if ($hasJuros) $cols[] = 'juros';
+if ($hasCondicao) $cols[] = 'condicao';
+$stmt = $pdo->query("SELECT " . implode(',', $cols) . " FROM CONDICAO_PAGAMENTO");
 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $error = isset($_GET['erro']);
 ?>
@@ -32,7 +39,7 @@ $error = isset($_GET['erro']);
         <th>ID</th>
         <th>Nome</th>
         <?php if($hasJuros): ?><th>Juros</th><?php endif; ?>
-        <th>Condição</th>
+        <?php if($hasCondicao): ?><th>Condição</th><?php endif; ?>
         <th>Ações</th>
       </tr>
     </thead>
@@ -42,7 +49,7 @@ $error = isset($_GET['erro']);
         <td><?= htmlspecialchars($it['id']) ?></td>
         <td><?= htmlspecialchars($it['nome']) ?></td>
         <?php if($hasJuros): ?><td><?= number_format($it['juros'],2,',','.') ?>%</td><?php endif; ?>
-        <td><?= htmlspecialchars($it['condicao']) ?></td>
+        <?php if($hasCondicao): ?><td><?= htmlspecialchars($it['condicao']) ?></td><?php endif; ?>
         <td class="table-actions">
           <a href="condicoes_pagamento_form.php?id=<?= $it['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
           <?php if($canDelete): ?>

@@ -5,46 +5,66 @@ $id = $_GET['id'] ?? null;
 $nome = $juros = $condicao = '';
 $error = '';
 $hasJuros = false;
+$hasCondicao = false;
 try {
   $chk = $pdo->query("SHOW COLUMNS FROM CONDICAO_PAGAMENTO LIKE 'juros'");
   $hasJuros = $chk->fetch(PDO::FETCH_ASSOC) ? true : false;
 } catch (PDOException $e) {
   $hasJuros = false;
 }
+try {
+  $chk = $pdo->query("SHOW COLUMNS FROM CONDICAO_PAGAMENTO LIKE 'condicao'");
+  $hasCondicao = $chk->fetch(PDO::FETCH_ASSOC) ? true : false;
+} catch (PDOException $e) {
+  $hasCondicao = false;
+}
 if($id){
-  if($hasJuros){
-    $stmt = $pdo->prepare("SELECT nome, juros, condicao FROM CONDICAO_PAGAMENTO WHERE id=?");
-  } else {
-    $stmt = $pdo->prepare("SELECT nome, condicao FROM CONDICAO_PAGAMENTO WHERE id=?");
-  }
+  $cols = ['nome'];
+  if($hasJuros) $cols[] = 'juros';
+  if($hasCondicao) $cols[] = 'condicao';
+  $stmt = $pdo->prepare("SELECT " . implode(',', $cols) . " FROM CONDICAO_PAGAMENTO WHERE id=?");
   $stmt->execute([$id]);
   $row = $stmt->fetch(PDO::FETCH_ASSOC);
   if($row){
     $nome = $row['nome'];
-    if($hasJuros) $juros = number_format($row['juros'],2,',','.');
-    $condicao = $row['condicao'];
+    if($hasJuros && isset($row['juros'])) $juros = number_format($row['juros'],2,',','.');
+    if($hasCondicao && isset($row['condicao'])) $condicao = $row['condicao'];
   }
 }
 if($_SERVER['REQUEST_METHOD']==='POST'){
   $nome = $_POST['nome'];
   $juros = str_replace(',','.',str_replace('.','',$_POST['juros'] ?? '0'));
-  $condicao = $_POST['condicao'];
+  if($hasCondicao) $condicao = $_POST['condicao'];
   if($id){
+    $fields = ['nome=?'];
+    $values = [$nome];
     if($hasJuros){
-      $stmt = $pdo->prepare("UPDATE CONDICAO_PAGAMENTO SET nome=?, juros=?, condicao=? WHERE id=?");
-      $stmt->execute([$nome,$juros,$condicao,$id]);
-    } else {
-      $stmt = $pdo->prepare("UPDATE CONDICAO_PAGAMENTO SET nome=?, condicao=? WHERE id=?");
-      $stmt->execute([$nome,$condicao,$id]);
+      $fields[] = 'juros=?';
+      $values[] = $juros;
     }
+    if($hasCondicao){
+      $fields[] = 'condicao=?';
+      $values[] = $condicao;
+    }
+    $values[] = $id;
+    $stmt = $pdo->prepare("UPDATE CONDICAO_PAGAMENTO SET " . implode(',', $fields) . " WHERE id=?");
+    $stmt->execute($values);
   }else{
+    $cols = ['nome'];
+    $place = ['?'];
+    $values = [$nome];
     if($hasJuros){
-      $stmt = $pdo->prepare("INSERT INTO CONDICAO_PAGAMENTO (nome,juros,condicao) VALUES (?,?,?)");
-      $stmt->execute([$nome,$juros,$condicao]);
-    } else {
-      $stmt = $pdo->prepare("INSERT INTO CONDICAO_PAGAMENTO (nome,condicao) VALUES (?,?)");
-      $stmt->execute([$nome,$condicao]);
+      $cols[] = 'juros';
+      $place[] = '?';
+      $values[] = $juros;
     }
+    if($hasCondicao){
+      $cols[] = 'condicao';
+      $place[] = '?';
+      $values[] = $condicao;
+    }
+    $stmt = $pdo->prepare("INSERT INTO CONDICAO_PAGAMENTO (" . implode(',', $cols) . ") VALUES (" . implode(',', $place) . ")");
+    $stmt->execute($values);
     $id = $pdo->lastInsertId();
   }
   header('Location: condicoes_pagamento_list.php');
@@ -69,10 +89,12 @@ include 'header.php';
       <input type="text" name="juros" value="<?= htmlspecialchars($juros) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
     </div>
     <?php endif; ?>
+    <?php if($hasCondicao): ?>
     <div>
       <label class="block mb-1">Condição</label>
       <input type="text" name="condicao" value="<?= htmlspecialchars($condicao) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
     </div>
+    <?php endif; ?>
     <div class="md:col-span-2">
       <button type="submit" class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition"><?= $id? 'Atualizar':'Salvar' ?></button>
     </div>
