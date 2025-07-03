@@ -38,16 +38,26 @@ if($row = $st->fetch(PDO::FETCH_ASSOC)){
 
 $valor_liquido = $valor_total * (1 - $juros_aplicado/100);
 
+$hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
+
 if($id){
-    $sql = "UPDATE VENDAS SET ID_CLIENTE=?, ID_USUARIO=?, ID_CONDICAO_PAGAMENTO=?, ID_METODO_PAGAMENTO=?, JUROS_APLICADO=?, VALOR_VENDA=?, VALOR_TOTAL=?, VALOR_LIQUIDO=?, ID_FRETE=?, DATA_ENTREGA=?, DESCONTO=?, TELEFONE_CONTATO=?, RESPONSAVEL_CONTATO=?, CEP_ENTREGA=?, RUA_ENTREGA=?, BAIRRO_ENTREGA=?, ID_CIDADE=?, OBSERVACAO=?, STATUS=?, ID_EMPRESA=? WHERE ID=?";
-    $pdo->prepare($sql)->execute([
-        $id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$valor_liquido,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa,$id
-    ]);
+    if($hasLiquido){
+        $sql = "UPDATE VENDAS SET ID_CLIENTE=?, ID_USUARIO=?, ID_CONDICAO_PAGAMENTO=?, ID_METODO_PAGAMENTO=?, JUROS_APLICADO=?, VALOR_VENDA=?, VALOR_TOTAL=?, VALOR_LIQUIDO=?, ID_FRETE=?, DATA_ENTREGA=?, DESCONTO=?, TELEFONE_CONTATO=?, RESPONSAVEL_CONTATO=?, CEP_ENTREGA=?, RUA_ENTREGA=?, BAIRRO_ENTREGA=?, ID_CIDADE=?, OBSERVACAO=?, STATUS=?, ID_EMPRESA=? WHERE ID=?";
+        $params = [$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$valor_liquido,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa,$id];
+    } else {
+        $sql = "UPDATE VENDAS SET ID_CLIENTE=?, ID_USUARIO=?, ID_CONDICAO_PAGAMENTO=?, ID_METODO_PAGAMENTO=?, JUROS_APLICADO=?, VALOR_VENDA=?, VALOR_TOTAL=?, ID_FRETE=?, DATA_ENTREGA=?, DESCONTO=?, TELEFONE_CONTATO=?, RESPONSAVEL_CONTATO=?, CEP_ENTREGA=?, RUA_ENTREGA=?, BAIRRO_ENTREGA=?, ID_CIDADE=?, OBSERVACAO=?, STATUS=?, ID_EMPRESA=? WHERE ID=?";
+        $params = [$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa,$id];
+    }
+    $pdo->prepare($sql)->execute($params);
 } else {
-    $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,VALOR_LIQUIDO,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-    $pdo->prepare($sql)->execute([
-        $id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$valor_liquido,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa
-    ]);
+    if($hasLiquido){
+        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,VALOR_LIQUIDO,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        $params = [$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$valor_liquido,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa];
+    } else {
+        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        $params = [$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa];
+    }
+    $pdo->prepare($sql)->execute($params);
     $id = $pdo->lastInsertId();
 }
 

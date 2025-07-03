@@ -66,29 +66,56 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
 
     $pdo->beginTransaction();
     try {
-        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,VALOR_LIQUIDO,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-        $pdo->prepare($sql)->execute([
-            $_SESSION['venda']['ID_CLIENTE'],
-            $_SESSION['venda']['ID_USUARIO'],
-            $idCond,
-            $idMet,
-            $juros,
-            $valorVenda,
-            $valorTotal,
-            $valorLiquidoCalc,
-            $idFrete,
-            $dataEntrega,
-            $valorDescItens,
-            $telContato,
-            $respContato,
-            $cepEntrega,
-            $ruaEntrega,
-            $bairroEntrega,
-            $idCidade,
-            null,
-            'PENDENTE',
-            $_SESSION['venda']['ID_EMPRESA']
-        ]);
+        $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
+        if($hasLiquido){
+            $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,VALOR_LIQUIDO,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            $params = [
+                $_SESSION['venda']['ID_CLIENTE'],
+                $_SESSION['venda']['ID_USUARIO'],
+                $idCond,
+                $idMet,
+                $juros,
+                $valorVenda,
+                $valorTotal,
+                $valorLiquidoCalc,
+                $idFrete,
+                $dataEntrega,
+                $valorDescItens,
+                $telContato,
+                $respContato,
+                $cepEntrega,
+                $ruaEntrega,
+                $bairroEntrega,
+                $idCidade,
+                null,
+                'PENDENTE',
+                $_SESSION['venda']['ID_EMPRESA']
+            ];
+        } else {
+            $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            $params = [
+                $_SESSION['venda']['ID_CLIENTE'],
+                $_SESSION['venda']['ID_USUARIO'],
+                $idCond,
+                $idMet,
+                $juros,
+                $valorVenda,
+                $valorTotal,
+                $idFrete,
+                $dataEntrega,
+                $valorDescItens,
+                $telContato,
+                $respContato,
+                $cepEntrega,
+                $ruaEntrega,
+                $bairroEntrega,
+                $idCidade,
+                null,
+                'PENDENTE',
+                $_SESSION['venda']['ID_EMPRESA']
+            ];
+        }
+        $pdo->prepare($sql)->execute($params);
         $idVenda = $pdo->lastInsertId();
         if(!$idVenda){
             throw new Exception('falha ao inserir venda');

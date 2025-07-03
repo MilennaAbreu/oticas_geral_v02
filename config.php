@@ -23,4 +23,15 @@ try {
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
 }
+
+// Helper to verify column existence, avoiding errors on older schemas
+function columnExists(PDO $pdo, string $table, string $column): bool {
+    try {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM `".$table."` LIKE ?");
+        $stmt->execute([$column]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ? true : false;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
 ?>

@@ -24,8 +24,9 @@ if ($showDashboard) {
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM VENDAS WHERE STATUS='CONCLUÍDA' AND DATA_VENDA BETWEEN ? AND ?");
     $stmt->execute([$start, $end]);
     $cntVendas = $stmt->fetchColumn() ?: 0;
-    // Valor líquido das vendas concluídas
-    $stmt = $pdo->prepare("SELECT SUM(VALOR_LIQUIDO) FROM VENDAS WHERE STATUS='CONCLUÍDA' AND DATA_VENDA BETWEEN ? AND ?");
+    // Valor das vendas (usa VALOR_LIQUIDO se existir, senao VALOR_TOTAL)
+    $col = columnExists($pdo,'VENDAS','VALOR_LIQUIDO') ? 'VALOR_LIQUIDO' : 'VALOR_TOTAL';
+    $stmt = $pdo->prepare("SELECT SUM($col) FROM VENDAS WHERE STATUS='CONCLUÍDA' AND DATA_VENDA BETWEEN ? AND ?");
     $stmt->execute([$start, $end]);
     $totalVendas = $stmt->fetchColumn() ?: 0;
     // Desconto concedido nas vendas concluídas
