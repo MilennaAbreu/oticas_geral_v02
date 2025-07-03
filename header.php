@@ -75,6 +75,7 @@ require_once 'permissions.php';
     .dataTables_wrapper .dataTables_info {
       margin: 0.5rem 0;
     }
+    .status-select { padding:0.25rem 0.5rem; border-radius:0.25rem; }
   </style>
 </head>
 <body class="flex">
