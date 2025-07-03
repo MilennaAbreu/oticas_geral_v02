@@ -24,7 +24,11 @@ if ($showDashboard) {
     $stmt = $pdo->prepare("SELECT COUNT(*) as cnt_vendas FROM VENDAS WHERE DATA_VENDA BETWEEN ? AND ?");
     $stmt->execute([$start, $end]);
     $cntVendas = $stmt->fetchColumn() ?: 0;
-    // Desconto
+    // Valor total das vendas
+    $stmt = $pdo->prepare("SELECT SUM(VALOR_TOTAL) as total_vendas FROM VENDAS WHERE DATA_VENDA BETWEEN ? AND ?");
+    $stmt->execute([$start, $end]);
+    $totalVendas = $stmt->fetchColumn() ?: 0;
+    // Desconto concedido
     $stmt = $pdo->prepare("SELECT SUM(DESCONTO) as total_desconto FROM VENDAS WHERE DATA_VENDA BETWEEN ? AND ?");
     $stmt->execute([$start, $end]);
     $totalDesconto = $stmt->fetchColumn() ?: 0;
@@ -44,7 +48,7 @@ if ($showDashboard) {
         <a href="step1.php" class="add-btn bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition">Nova Venda</a>
     </div>
     <?php if ($showDashboard): ?>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded shadow p-4">
             <h3 class="font-semibold mb-2">Contas a Pagar x Receber</h3>
             <canvas id="chartContas"></canvas>
@@ -52,6 +56,10 @@ if ($showDashboard) {
         <div class="bg-white rounded shadow p-4">
             <h3 class="font-semibold mb-2">Vendas Efetuadas</h3>
             <p class="text-xl"><?= $cntVendas ?></p>
+        </div>
+        <div class="bg-white rounded shadow p-4">
+            <h3 class="font-semibold mb-2">Valor de Vendas</h3>
+            <p class="text-xl">R$ <?= number_format($totalVendas,2,',','.') ?></p>
         </div>
         <div class="bg-white rounded shadow p-4">
             <h3 class="font-semibold mb-2">Desconto Concedido</h3>
