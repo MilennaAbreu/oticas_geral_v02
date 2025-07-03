@@ -83,6 +83,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $_SESSION['venda']['ID_EMPRESA']
         ]);
         $idVenda = $pdo->lastInsertId();
+        if(!$idVenda){
+            throw new Exception('falha ao inserir venda');
+        }
         $stmtItem = $pdo->prepare("INSERT INTO ITENS_VENDA (ID_VENDA,ID_PRODUTO,QUANTIDADE,VALOR_UNITARIO,DESCONTO) VALUES (?,?,?,?,?)");
         foreach($itens as $it){
             $stmtItem->execute([$idVenda,$it['ID_PRODUTO'],$it['QUANTIDADE'],$it['VALOR_UNITARIO'],$it['DESCONTO']]);
@@ -94,6 +97,8 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     } catch(Exception $e){
         $pdo->rollBack();
         $error = 'Erro ao salvar venda';
+        // Uncomment the line below during debugging to inspect the issue
+        // $error .= ': ' . $e->getMessage();
     }
 }
 

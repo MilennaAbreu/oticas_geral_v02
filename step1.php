@@ -37,6 +37,7 @@ if($allowed){
 }
 
 $clientes = $pdo->query("SELECT ID, CPF, NOME FROM CLIENTE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
+$cidades  = $pdo->query("SELECT ID, CONCAT(NOME,'/',UF) AS NOME FROM CIDADE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $pageTitle = 'Empresa e Cliente';
 include 'header.php';
 ?>
@@ -74,7 +75,14 @@ include 'header.php';
     <div class="bg-white p-4 rounded w-80">
       <h3 class="text-lg mb-2">Novo Cliente</h3>
       <input id="cliNome" type="text" class="border p-2 w-full mb-2" placeholder="Nome" />
-      <input id="cliCpf" type="text" class="border p-2 w-full mb-3" placeholder="CPF" />
+      <input id="cliCpf" type="text" class="border p-2 w-full mb-2" placeholder="CPF" />
+      <input id="cliNasc" type="date" class="border p-2 w-full mb-2" />
+      <select id="cliCidade" class="border p-2 w-full mb-3">
+        <option value="">Cidade</option>
+        <?php foreach($cidades as $ci): ?>
+          <option value="<?= $ci['ID'] ?>"><?= htmlspecialchars($ci['NOME']) ?></option>
+        <?php endforeach; ?>
+      </select>
       <div class="text-right">
         <button type="button" class="mr-2 px-3 py-1" onclick="closeModal('modalCliente')">Cancelar</button>
         <button type="button" class="bg-primary text-white px-3 py-1 rounded" onclick="saveCliente()">Salvar</button>
@@ -88,9 +96,12 @@ function closeModal(id){document.getElementById(id).classList.add('hidden');}
 function saveCliente(){
   const nome=document.getElementById('cliNome').value.trim();
   const cpf=document.getElementById('cliCpf').value.replace(/\D/g,'');
+  const nasc=document.getElementById('cliNasc').value;
+  const cid=document.getElementById('cliCidade').value;
   if(!nome||!cpf) return;
-  fetch('clientes_add.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'nome='+encodeURIComponent(nome)+'&cpf='+encodeURIComponent(cpf)})
-  .then(r=>r.json()).then(d=>{if(d.success){const sel=document.getElementById('clienteSelect');const opt=document.createElement('option');opt.value=d.id;opt.textContent=d.nome;sel.appendChild(opt);sel.value=d.id;closeModal('modalCliente');}});
+  const body='nome='+encodeURIComponent(nome)+'&cpf='+encodeURIComponent(cpf)+'&nascimento='+encodeURIComponent(nasc)+'&id_cidade='+encodeURIComponent(cid);
+  fetch('clientes_add.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body})
+  .then(r=>r.json()).then(d=>{if(d.success){const sel=document.getElementById('clienteSelect');const opt=document.createElement('option');opt.value=d.id;opt.textContent=d.nome;sel.appendChild(opt);sel.value=d.id;document.getElementById('cliNome').value='';document.getElementById('cliCpf').value='';document.getElementById('cliNasc').value='';document.getElementById('cliCidade').value='';closeModal('modalCliente');}});
 }
 </script>
 <?php include 'footer.php'; ?>
