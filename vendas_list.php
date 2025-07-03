@@ -15,7 +15,7 @@ $vendas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $canDelete = hasRole('ADMINISTRADOR');
 ?>
 <h2 class="text-2xl font-semibold mb-4">Cadastro de Vendas</h2>
-<button class="add-btn bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" onclick="window.location.href='vendas_form.php'">Nova Venda</button>
+<button class="add-btn bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" onclick="window.location.href='step1.php'">Nova Venda</button>
 <table id="vendaTable" class="display" style="width:100%; margin-top:10px;">
   <thead>
     <tr>
