@@ -31,7 +31,7 @@ if($id){
     $sale = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-$clientes = $pdo->query("SELECT ID, NOME FROM CLIENTE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
+$clientes = $pdo->query("SELECT ID, CPF, NOME FROM CLIENTE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $usuarios = $pdo->query("SELECT ID, NOME FROM USUARIO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $condicoes = $pdo->query("SELECT ID, NOME FROM CONDICAO_PAGAMENTO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $metodos = $pdo->query("SELECT ID, NOME FROM METODO_PAGAMENTO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
@@ -40,11 +40,11 @@ $cidades = $pdo->query("SELECT ID, CONCAT(NOME,'/',UF) AS NOME FROM CIDADE ORDER
 $empresaIds = userCompanies($pdo);
 if(!hasRole('ADMINISTRADOR','DIRETORIA') && $empresaIds){
     $in = implode(',', array_fill(0,count($empresaIds),'?'));
-    $stmt = $pdo->prepare("SELECT ID, NOME_FANTASIA FROM EMPRESA WHERE ID IN ($in) ORDER BY NOME_FANTASIA");
+    $stmt = $pdo->prepare("SELECT ID, NOME FROM EMPRESA WHERE ID IN ($in) ORDER BY NOME");
     $stmt->execute($empresaIds);
     $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    $empresas = $pdo->query("SELECT ID, NOME_FANTASIA FROM EMPRESA ORDER BY NOME_FANTASIA")->fetchAll(PDO::FETCH_ASSOC);
+    $empresas = $pdo->query("SELECT ID, NOME FROM EMPRESA ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 }
 
 $pageTitle = $id ? 'Editar Venda' : 'Nova Venda';
@@ -56,12 +56,15 @@ include 'header.php';
     <input type="hidden" name="id" value="<?= $id ?>">
     <div>
       <label class="block mb-1">Cliente</label>
-      <select name="id_cliente" class="border p-2 w-full rounded" required>
-        <option value="">Selecione</option>
-        <?php foreach($clientes as $c): ?>
-          <option value="<?= $c['ID'] ?>" <?= $sale['ID_CLIENTE']==$c['ID']?'selected':'' ?>><?= htmlspecialchars($c['NOME']) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <div class="flex">
+        <select name="id_cliente" id="clienteSelect" class="border p-2 w-full rounded" required>
+          <option value="">Selecione</option>
+          <?php foreach($clientes as $c): ?>
+            <option value="<?= $c['ID'] ?>" <?= $sale['ID_CLIENTE']==$c['ID']?'selected':'' ?>><?= htmlspecialchars($c['CPF'].' - '.$c['NOME']) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" onclick="openModal('modalCliente')" class="ml-2 px-3 py-1 bg-gray-300 rounded">+</button>
+      </div>
     </div>
     <div>
       <label class="block mb-1">Vendedor</label>
@@ -161,14 +164,55 @@ include 'header.php';
       <label class="block mb-1">Empresa</label>
       <select name="id_empresa" class="border p-2 w-full rounded" required>
         <option value="">Selecione</option>
-        <?php foreach($empresas as $e): ?>
-          <option value="<?= $e['ID'] ?>" <?= $sale['ID_EMPRESA']==$e['ID']?'selected':'' ?>><?= htmlspecialchars($e['NOME_FANTASIA']) ?></option>
-        <?php endforeach; ?>
-      </select>
+          <?php foreach($empresas as $e): ?>
+            <option value="<?= $e['ID'] ?>" <?= $sale['ID_EMPRESA']==$e['ID']?'selected':'' ?>><?= htmlspecialchars($e['NOME']) ?></option>
+          <?php endforeach; ?>
+        </select>
     </div>
     <div class="md:col-span-2">
       <button class="bg-primary text-white px-4 py-2 rounded" type="submit">Salvar</button>
     </div>
   </form>
+  <!-- Modal para cadastro rápido de cliente -->
+  <div id="modalCliente" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-4 rounded w-80">
+      <h3 class="text-lg mb-2">Novo Cliente</h3>
+      <input id="cliNome" type="text" class="border p-2 w-full mb-2" placeholder="Nome" />
+      <input id="cliCpf" type="text" class="border p-2 w-full mb-3" placeholder="CPF" />
+      <div class="text-right">
+        <button type="button" class="mr-2 px-3 py-1" onclick="closeModal('modalCliente')">Cancelar</button>
+        <button type="button" class="bg-primary text-white px-3 py-1 rounded" onclick="saveCliente()">Salvar</button>
+      </div>
+    </div>
+  </div>
 </div>
+<script>
+function openModal(id){
+  document.getElementById(id).classList.remove('hidden');
+}
+function closeModal(id){
+  document.getElementById(id).classList.add('hidden');
+}
+function saveCliente(){
+  const nome = document.getElementById('cliNome').value.trim();
+  const cpf  = document.getElementById('cliCpf').value.replace(/\D/g,'');
+  if(!nome || !cpf) return;
+  fetch('clientes_add.php', {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'nome='+encodeURIComponent(nome)+'&cpf='+encodeURIComponent(cpf)
+  }).then(r=>r.json()).then(d=>{
+    if(d.success){
+      const select = document.getElementById('clienteSelect');
+      const opt = document.createElement('option');
+      opt.value = d.id; opt.textContent = d.nome;
+      select.appendChild(opt);
+      select.value = d.id;
+      document.getElementById('cliNome').value='';
+      document.getElementById('cliCpf').value='';
+      closeModal('modalCliente');
+    }
+  });
+}
+</script>
 <?php include 'footer.php'; ?>

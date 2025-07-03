@@ -27,11 +27,11 @@ if(count($allowed) === 1){
 
 if($allowed){
     $in = implode(',', array_fill(0,count($allowed),'?'));
-    $stmt = $pdo->prepare("SELECT ID, NOME_FANTASIA FROM EMPRESA WHERE ID IN ($in) ORDER BY NOME_FANTASIA");
+    $stmt = $pdo->prepare("SELECT ID, NOME FROM EMPRESA WHERE ID IN ($in) ORDER BY NOME");
     $stmt->execute($allowed);
     $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    $empresas = $pdo->query("SELECT ID, NOME_FANTASIA FROM EMPRESA ORDER BY NOME_FANTASIA")->fetchAll(PDO::FETCH_ASSOC);
+    $empresas = $pdo->query("SELECT ID, NOME FROM EMPRESA ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 }
 
 $pageTitle = 'Empresa da Venda';
@@ -43,7 +43,7 @@ include 'header.php';
     <select name="id_empresa" class="border p-2 rounded w-full" required>
       <option value="">Selecione</option>
       <?php foreach($empresas as $e): ?>
-        <option value="<?= $e['ID'] ?>"><?= htmlspecialchars($e['NOME_FANTASIA']) ?></option>
+        <option value="<?= $e['ID'] ?>"><?= htmlspecialchars($e['NOME']) ?></option>
       <?php endforeach; ?>
     </select>
     <div>
