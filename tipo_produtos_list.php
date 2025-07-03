@@ -24,10 +24,10 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <tr>
         <td><?= htmlspecialchars($it['id']) ?></td>
         <td><?= htmlspecialchars($it['nome']) ?></td>
-        <td>
-          <a href="tipo_produtos_form.php?id=<?= $it['id'] ?>" class="text-accent hover:underline">Editar</a>
+        <td class="table-actions">
+          <a href="tipo_produtos_form.php?id=<?= $it['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
           <?php if($canDelete): ?>
-            <a href="tipo_produtos_delete.php?id=<?= $it['id'] ?>" onclick="return confirm('Excluir?');" class="text-red-600 hover:underline ml-2">Deletar</a>
+            <a href="tipo_produtos_delete.php?id=<?= $it['id'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
           <?php endif; ?>
         </td>
       </tr>

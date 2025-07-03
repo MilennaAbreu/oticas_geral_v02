@@ -38,6 +38,34 @@ require 'auth.php';
     input:focus, select:focus { border: none !important; border-bottom: 2px solid #8E070D !important; outline: none !important; box-shadow: none !important; }
     table thead { background-color: #8E070D !important; }
     table thead th { color: #ffffff !important; }
+    /* spacing and actions */
+    table.dataTable tbody td, table.dataTable thead th {
+      padding: 0.75rem 1rem !important;
+    }
+    .table-actions a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      transition: background-color .2s, color .2s, transform .2s;
+      margin-right: 0.25rem;
+    }
+    .table-actions a.edit { color: #2563eb; }
+    .table-actions a.delete { color: #dc2626; }
+    .table-actions a:hover {
+      color: #fff;
+      transform: scale(1.05);
+    }
+    .table-actions a.edit:hover { background-color: #2563eb; }
+    .table-actions a.delete:hover { background-color: #dc2626; }
+    form .form-group { margin-bottom: 1rem; }
+    form .form-control {
+      border: 1px solid #d1d5db; /* gray-300 */
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.25rem;
+      width: 100%;
+    }
   </style>
 </head>
 <body class="flex">

@@ -45,10 +45,10 @@ $items = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         <td><?= $it['ESTOQUE_ATUAL'] ?></td>
         <td><?= $it['STATUS'] ?></td>
         <td><?php if($it['IMAGEM']): ?><img src="uploads/<?= $it['IMAGEM'] ?>" width="50"><?php endif; ?></td>
-        <td>
-          <a href="produtos_form.php?id=<?= $it['ID'] ?>" class="text-accent hover:underline">Editar</a>
+        <td class="table-actions">
+          <a href="produtos_form.php?id=<?= $it['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
           <?php if($canDelete): ?>
-            <a href="produtos_delete.php?id=<?= $it['ID'] ?>" onclick="return confirm('Excluir?');" class="text-red-600 hover:underline ml-2">Deletar</a>
+            <a href="produtos_delete.php?id=<?= $it['ID'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
           <?php endif; ?>
         </td>
       </tr>

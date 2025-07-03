@@ -36,19 +36,14 @@ try {
             <td class="border-t px-4 py-2"><?= htmlspecialchars($u['username']) ?></td>
             <td class="border-t px-4 py-2"><?= htmlspecialchars($u['permissoes']) ?></td>
             <td class="border-t px-4 py-2"><?= htmlspecialchars($u['empresas']) ?></td>
-            <td>
-                <a href="user_form.php?id=<?= $u['id'] ?>"><i class="fas fa-edit"></i></a>
+            <td class="table-actions">
+                <a href="user_form.php?id=<?= $u['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
                 <?php if($canDelete): ?>
-                <a href="user_delete.php?id=<?= $u['id'] ?>" onclick="return confirm('Excluir este usuário?');"><i class="fas fa-trash-alt"></i></a>
+                <a href="user_delete.php?id=<?= $u['id'] ?>" onclick="return confirm('Excluir este usuário?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
                 <?php endif; ?>
             </td>
         </tr>
         <?php endforeach; ?>
     </tbody>
 </table>
-<script>
-$(document).ready(function() {
-    $('#userTable').DataTable({ paging: true, searching: true, info: true });
-});
-</script>
 <?php include 'footer.php'; ?>

@@ -24,17 +24,12 @@ $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <td class="border-t px-4 py-2"><?= htmlspecialchars($c['cidade']) ?></td>
             <td class="border-t px-4 py-2"><?= htmlspecialchars($c['contato']) ?></td>
             <td class="border-t px-4 py-2"><?= htmlspecialchars($c['status']) ?></td>
-            <td>
-                <a href="cliente_form.php?id=<?= $c['id'] ?>"><i class="fas fa-edit"></i></a>
-                <a href="cliente_delete.php?id=<?= $c['id'] ?>" onclick="return confirm('Excluir este cliente?');"><i class="fas fa-trash-alt"></i></a>
+            <td class="table-actions">
+                <a href="cliente_form.php?id=<?= $c['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+                <a href="cliente_delete.php?id=<?= $c['id'] ?>" onclick="return confirm('Excluir este cliente?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
             </td>
         </tr>
     <?php endforeach; ?>
     </tbody>
 </table>
-<script>
-$(document).ready(function() {
-    $('#clienteTable').DataTable();
-});
-</script>
 <?php include 'footer.php'; ?>

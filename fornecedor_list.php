@@ -18,13 +18,12 @@ $fornecedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <td class="border-t px-4 py-2"><?=htmlspecialchars($f['contato'])?></td>
 <td class="border-t px-4 py-2"><?=htmlspecialchars($f['cidade'])?></td>
 <td class="border-t px-4 py-2"><?=htmlspecialchars($f['status'])?></td>
-<td>
-<a href="fornecedor_form.php?id=<?=$f['id']?>"><i class="fas fa-edit"></i></a>
-<a href="fornecedor_delete.php?id=<?=$f['id']?>" onclick="return confirm('Excluir este fornecedor?');"><i class="fas fa-trash-alt"></i></a>
+<td class="table-actions">
+<a href="fornecedor_form.php?id=<?=$f['id']?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+<a href="fornecedor_delete.php?id=<?=$f['id']?>" onclick="return confirm('Excluir este fornecedor?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
 </td>
 </tr>
 <?php endforeach; ?>
 </tbody>
 </table>
-<script>$(document).ready(()=>$('#forneTable').DataTable());</script>
 <?php include 'footer.php'; ?>
