@@ -19,6 +19,7 @@ $idCond  = $_POST['id_condicao_pagamento'] ?? '';
 $idMet   = $_POST['id_metodo_pagamento'] ?? '';
 $idFrete = $_POST['id_frete'] ?? '';
 $dataEntrega = $_POST['data_entrega'] ?? '';
+$dataVenc    = $_POST['data_vencimento'] ?? '';
 $descontoGeral = isset($_POST['desconto_geral']) ? str_replace(',', '.', $_POST['desconto_geral']) : '0';
 $telContato    = $_POST['telefone_contato'] ?? $cliente['CONTATO'];
 $respContato   = $_POST['responsavel_contato'] ?? '';
@@ -30,6 +31,7 @@ $idCidade      = $_POST['id_cidade'] ?? $cliente['ID_CIDADE'];
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $idFrete = $idFrete ?: null;
     $dataEntrega = $dataEntrega ?: null;
+    $dataVenc = $dataVenc ?: null;
     $descontoGeral = (float)str_replace(',', '.', $descontoGeral ?: '0');
     $cepEntrega = preg_replace('/\D/','', $cepEntrega ?: '');
 
@@ -65,7 +67,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
 
     $pdo->beginTransaction();
     try {
-        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_VENCIMENTO_PARCELA,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         $pdo->prepare($sql)->execute([
             $_SESSION['venda']['ID_CLIENTE'],
             $_SESSION['venda']['ID_USUARIO'],
@@ -75,6 +77,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $valorVenda,
             $valorTotal,
             $idFrete,
+            $dataVenc,
             $dataEntrega,
             $descontoGeral,
             $telContato,
@@ -181,6 +184,10 @@ include 'header.php';
     <div>
       <label class="block mb-1">Data de Entrega</label>
       <input type="date" name="data_entrega" value="<?= htmlspecialchars($dataEntrega) ?>" class="border p-2 w-full rounded">
+    </div>
+    <div>
+      <label class="block mb-1">Data Vencimento Parcela</label>
+      <input type="date" name="data_vencimento" value="<?= htmlspecialchars($dataVenc) ?>" class="border p-2 w-full rounded" required>
     </div>
     <div>
       <label class="block mb-1">Desconto Geral</label>

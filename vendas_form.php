@@ -10,6 +10,7 @@ $sale = [
     'ID_CONDICAO_PAGAMENTO' => '',
     'ID_METODO_PAGAMENTO' => '',
     'ID_FRETE' => '',
+    'DATA_VENCIMENTO_PARCELA' => '',
     'DATA_ENTREGA' => '',
     'VALOR_VENDA' => '',
     'DESCONTO' => '0.00',
@@ -105,6 +106,10 @@ include 'header.php';
     <div>
       <label class="block mb-1">Data Entrega</label>
       <input type="date" name="data_entrega" value="<?= $sale['DATA_ENTREGA'] ?>" class="border p-2 w-full rounded">
+    </div>
+    <div>
+      <label class="block mb-1">Data Vencimento Parcela</label>
+      <input type="date" name="data_vencimento" value="<?= $sale['DATA_VENCIMENTO_PARCELA'] ?>" class="border p-2 w-full rounded" required>
     </div>
     <div>
       <label class="block mb-1">Valor Venda</label>
