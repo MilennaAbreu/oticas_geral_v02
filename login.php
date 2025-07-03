@@ -36,10 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gray-100 font-[Poppins]">
   <div class="bg-white shadow-md rounded-lg p-8 w-full max-w-sm">
-    <div class="flex justify-center mb-4 text-primary space-x-4">
+    <div class="flex justify-center mb-4 text-primary">
       <i class="fas fa-glasses fa-2x"></i>
-      <i class="fas fa-shopping-cart fa-2x"></i>
-      <i class="fas fa-truck fa-2x"></i>
     </div>
     <h2 class="text-center text-2xl font-semibold mb-6 text-primary">Login</h2>
     <?php if ($message): ?>
