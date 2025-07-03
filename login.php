@@ -1,6 +1,5 @@
 <?php
 require_once 'config.php';
-// Se já autenticado, redireciona para dashboard
 if (isset($_SESSION['user'])) {
     header("Location: dashboard.php");
     exit();
@@ -24,31 +23,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f5f5; }
-        .login-box { background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); width:300px; }
-        input { width:100%; padding:10px; margin:5px 0; border:1px solid #ccc; border-radius:4px; }
-        button { width:100%; padding:10px; margin:10px 0; border:none; border-radius:4px; background:#007BFF; color:#fff; cursor:pointer; }
-        button:hover { background:#0056b3; }
-        .forgot { text-align:right; }
-        .error { color:red; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {theme: {extend: {colors: {primary: '#8E070D'}}}}
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 </head>
-<body>
-    <div class="login-box">
-        <h2>Login</h2>
-        <?php if ($message): ?><p class="error"><?= $message ?></p><?php endif; ?>
-        <form method="post">
-            <input type="text" name="username" placeholder="Usuário" required>
-            <input type="password" name="password" placeholder="Senha" required>
-            <button class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" type="submit">Entrar</button>
-        </form>
-        <div class="forgot"><a href="#">Esqueci minha senha</a></div>
+<body class="min-h-screen flex items-center justify-center bg-gray-100 font-[Poppins]">
+  <div class="bg-white shadow-md rounded-lg p-8 w-full max-w-sm">
+    <div class="flex justify-center mb-4 text-primary space-x-4">
+      <i class="fas fa-glasses fa-2x"></i>
+      <i class="fas fa-shopping-cart fa-2x"></i>
+      <i class="fas fa-truck fa-2x"></i>
     </div>
+    <h2 class="text-center text-2xl font-semibold mb-6 text-primary">Login</h2>
+    <?php if ($message): ?>
+      <p class="text-red-600 text-center mb-2"><?= $message ?></p>
+    <?php endif; ?>
+    <form method="post" class="space-y-4">
+      <input class="w-full border border-gray-300 rounded p-2 focus:border-primary focus:ring-0" type="text" name="username" placeholder="Usuário" required>
+      <input class="w-full border border-gray-300 rounded p-2 focus:border-primary focus:ring-0" type="password" name="password" placeholder="Senha" required>
+      <button type="submit" class="w-full bg-primary text-white py-2 rounded hover:bg-primary/90 transition">Entrar</button>
+    </form>
+    <div class="text-right mt-2">
+      <a href="#" class="text-sm text-primary hover:underline">Esqueci minha senha</a>
+    </div>
+  </div>
 </body>
 </html>
