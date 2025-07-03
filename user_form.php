@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, permissoes=? WHERE id=?");
             $stmt->execute([$nome, $username, $permissoes, $id]);
         }
-        $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE id_usuario=?")->execute([$id]);
+        $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE ID_USUARIO=?")->execute([$id]);
     } else {
         $stmt = $pdo->prepare("INSERT INTO USUARIO (nome, username, senha, permissoes) VALUES (?,?,?,?)");
         $stmt->execute([$nome, $username, $hashed, $permissoes]);
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$error) {
-        $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (id_usuario, id_empresa) VALUES (?,?)");
+        $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (ID_USUARIO, ID_EMPRESA) VALUES (?,?)");
         foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
         header('Location: user_list.php');
         exit();
@@ -55,7 +55,7 @@ if ($id) {
     $nome = $row['nome'];
     $username = $row['username'];
     $permissoes = $row['permissoes'];
-    $sel = $pdo->prepare("SELECT id_empresa FROM USUARIO_EMPRESA WHERE id_usuario=?");
+    $sel = $pdo->prepare("SELECT ID_EMPRESA FROM USUARIO_EMPRESA WHERE ID_USUARIO=?");
     $sel->execute([$id]);
     $empresas_selected = $sel->fetchAll(PDO::FETCH_COLUMN);
 }
