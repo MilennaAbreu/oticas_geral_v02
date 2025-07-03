@@ -31,7 +31,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>
-  <form method="post" class="space-y-4">
+  <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <label class="block mb-1">Nome</label>
       <input type="text" name="nome" value="<?= htmlspecialchars($nome) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full">
@@ -44,7 +44,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       <label class="block mb-1">Preço</label>
       <input type="text" name="preco" value="<?= htmlspecialchars($preco) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full">
     </div>
-    <div>
+    <div class="md:col-span-2">
       <button type="submit" class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition"><?= $id? 'Atualizar':'Salvar' ?></button>
     </div>
   </form>

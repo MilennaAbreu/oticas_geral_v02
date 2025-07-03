@@ -62,7 +62,7 @@ require 'auth.php';
     form .form-group { margin-bottom: 1rem; }
     form .form-control {
       border: 1px solid #d1d5db; /* gray-300 */
-      padding: 0.5rem 0.75rem;
+      padding: 0.75rem 1rem;
       border-radius: 0.25rem;
       width: 100%;
     }

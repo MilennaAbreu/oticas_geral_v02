@@ -29,7 +29,7 @@ try {
   </div>
   <table id="userTable" class="display w-full">
     <thead>
-        <tr><th class="bg-secondary text-white px-4 py-2">ID</th><th class="bg-secondary text-white px-4 py-2">Nome</th><th class="bg-secondary text-white px-4 py-2">Login</th><th class="bg-secondary text-white px-4 py-2">Permissões</th><th class="bg-secondary text-white px-4 py-2">Empresas</th><th class="bg-secondary text-white px-4 py-2">Ações</th></tr>
+        <tr><th>ID</th><th>Nome</th><th>Login</th><th>Permissões</th><th>Empresas</th><th>Ações</th></tr>
     </thead>
     <tbody>
         <?php foreach($users as $u): ?>

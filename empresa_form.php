@@ -49,7 +49,7 @@ $cidades = $pdo->query("SELECT id, CONCAT(nome,'/',uf) AS nome FROM CIDADE ORDER
 ?>
 <div class="container mx-auto">
     <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>
-    <form method="post" id="empresaForm" class="space-y-4">
+    <form method="post" id="empresaForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
             <label class="block mb-1">Nome</label>
             <input type="text" name="nome" value="<?= htmlspecialchars($nome) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full">
@@ -86,7 +86,7 @@ $cidades = $pdo->query("SELECT id, CONCAT(nome,'/',uf) AS nome FROM CIDADE ORDER
                 <option value="inativo" <?= $status == 'inativo' ? 'selected' : '' ?>>Inativo</option>
             </select>
         </div>
-        <div>
+        <div class="md:col-span-2">
             <button type="submit" class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition"><?= $id ? 'Atualizar' : 'Salvar' ?></button>
         </div>
     </form>

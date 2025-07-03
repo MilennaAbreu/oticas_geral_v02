@@ -26,7 +26,7 @@ $tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASS
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4"><?= $id ? 'Editar' : 'Novo' ?> Produto</h2>
-  <form method="POST" action="produtos_save.php" enctype="multipart/form-data" class="space-y-4">
+  <form method="POST" action="produtos_save.php" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <input type="hidden" name="id" value="<?= $id ?>">
     <div><label>Nome</label><input name="nome" value="<?= $produto['NOME'] ?>" class="border p-2 w-full rounded" required></div>
     <div><label>Marca</label><input name="marca" value="<?= $produto['MARCA'] ?>" class="border p-2 w-full rounded"></div>
@@ -72,7 +72,9 @@ $tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASS
         <img src="uploads/<?= $produto['IMAGEM'] ?>" width="100" class="mt-2">
       <?php endif; ?>
     </div>
-    <button class="bg-primary text-white px-4 py-2 rounded">Salvar</button>
+    <div class="md:col-span-2">
+      <button class="bg-primary text-white px-4 py-2 rounded">Salvar</button>
+    </div>
   </form>
 </div>
 <script>
