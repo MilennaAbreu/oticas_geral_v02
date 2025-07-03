@@ -1,7 +1,7 @@
 <?php
+require 'config.php';
+require 'auth.php';
 $id = $_GET['id'] ?? null;
-$pageTitle = $id ? 'Editar Empresa' : 'Nova Empresa';
-include 'header.php';
 
 // Initialize
 $nome = $cnpj = $cep = $endereco = $telefone = $status = '';
@@ -46,6 +46,8 @@ if ($id) {
 
 // Fetch cities
 $cidades = $pdo->query("SELECT id, CONCAT(nome,'/',uf) AS nome FROM CIDADE ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
+$pageTitle = $id ? 'Editar Empresa' : 'Nova Empresa';
+include 'header.php';
 ?>
 <div class="container mx-auto">
     <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>

@@ -1,6 +1,6 @@
 <?php
-$pageTitle = 'Cliente Form';
-include 'header.php';
+require 'config.php';
+require 'auth.php';
 $id = $_GET['id'] ?? null;
 $nome = $cpf = $nascimento = $cep = $rua = $bairro = $contato = $status = '';
 $id_cidade = '';
@@ -22,7 +22,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $stmt->execute([$nome,$cpf,$nascimento,$cep,$rua,$bairro,$id_cidade,$contato,$status]);
         $id = $pdo->lastInsertId();
     }
-    header('Location: cliente_list.php'); exit();
+    header('Location: cliente_list.php');
+    exit();
 }
 if($id){
     $stmt = $pdo->prepare("SELECT nome,cpf,DATE_FORMAT(data_nascimento,'%Y-%m-%d') as nascimento,cep,rua,bairro,id_cidade,contato,status FROM CLIENTE WHERE id=?");
@@ -35,6 +36,8 @@ if($id){
     }
 }
 $cidades = $pdo->query("SELECT id, CONCAT(nome,'/',uf) as nome FROM CIDADE ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
+$pageTitle = $id ? 'Editar Cliente' : 'Novo Cliente';
+include 'header.php';
 ?>
 <div class="container mx-auto">
 <h2 class="text-2xl font-semibold mb-4"><?= $id?'Editar':'Novo' ?> Cliente</h2>

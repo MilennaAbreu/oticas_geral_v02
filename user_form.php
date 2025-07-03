@@ -1,7 +1,7 @@
 <?php
+require 'config.php';
+require 'auth.php';
 $id = $_GET['id'] ?? null;
-$pageTitle = $id ? 'Editar Usuário' : 'Novo Usuário';
-include 'header.php';
 
 $nome = $username = $permissoes = '';
 $empresas_selected = [];
@@ -42,8 +42,10 @@ if ($id) {
     $permissoes = $row['permissoes'];
     $sel = $pdo->prepare("SELECT id_empresa FROM USUARIO_EMPRESA WHERE id_usuario=?");
     $sel->execute([$id]);
-    $empresas_selected = $sel->fetchAll(PDO::FETCH_COLUMN);
+$empresas_selected = $sel->fetchAll(PDO::FETCH_COLUMN);
 }
+$pageTitle = $id ? 'Editar Usuário' : 'Novo Usuário';
+include 'header.php';
 ?>
 <div class="container mx-auto">
     <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>

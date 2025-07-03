@@ -1,5 +1,6 @@
 <?php
-include 'header.php';
+require 'config.php';
+require 'auth.php';
 
 $id             = $_POST['id'] ?? null;
 $nome           = $_POST['nome'] ?? '';

@@ -1,7 +1,7 @@
 <?php
+require 'config.php';
+require 'auth.php';
 $id = $_GET['id'] ?? null;
-$pageTitle = $id ? 'Editar Categoria' : 'Nova Categoria';
-include 'header.php';
 $nome = '';
 if($id){
   $stmt = $pdo->prepare("SELECT id, nome FROM CATEGORIA_PRODUTO WHERE id=?");
@@ -20,8 +20,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $stmt = $pdo->prepare("INSERT INTO CATEGORIA_PRODUTO (nome) VALUES (?)");
     $stmt->execute([$nome]);
   }
-  header('Location: categorias_list.php'); exit;
+  header('Location: categorias_list.php');
+  exit;
 }
+$pageTitle = $id ? 'Editar Categoria' : 'Nova Categoria';
+include 'header.php';
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>

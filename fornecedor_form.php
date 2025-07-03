@@ -1,6 +1,6 @@
 <?php
-$pageTitle='Fornecedor Form';
-include 'header.php';
+require 'config.php';
+require 'auth.php';
 $id = $_GET['id']??null;
 $nome=$cnpj=$contato=$cep=$rua=$bairro=$status=''; $id_cidade='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
@@ -16,7 +16,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $stmt->execute([$nome,$cnpj,$contato,$cep,$rua,$bairro,$id_cidade,$status]);
         $id=$pdo->lastInsertId();
     }
-    header('Location: fornecedor_list.php'); exit();
+    header('Location: fornecedor_list.php');
+    exit();
 }
 if($id){
     $stmt=$pdo->prepare("SELECT nome,cnpj,contato,cep,rua,bairro,id_cidade,status FROM FORNECEDOR WHERE id=?");
@@ -28,6 +29,8 @@ if($id){
     }
 }
 $cidades=$pdo->query("SELECT id,CONCAT(nome,'/',uf) as nome FROM CIDADE ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
+$pageTitle='Fornecedor Form';
+include 'header.php';
 ?>
 <div class="container mx-auto">
 <h2 class="text-2xl font-semibold mb-4"><?= $id?'Editar':'Novo' ?> Fornecedor</h2>

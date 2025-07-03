@@ -1,7 +1,7 @@
 <?php
+require 'config.php';
+require 'auth.php';
 $id = $_GET['id'] ?? null;
-$pageTitle = $id ? 'Editar Pecas' : 'Novo Pecas';
-include 'header.php';
 $nome = '';
 $descricao = '';
 $preco = '';
@@ -26,8 +26,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $stmt = $pdo->prepare("INSERT INTO PECAS (nome, descricao, preco) VALUES (?,?,?)");
     $stmt->execute([$nome, $descricao, $preco]);
   }
-  header('Location: pecas_list.php'); exit;
+  header('Location: pecas_list.php');
+  exit;
 }
+$pageTitle = $id ? 'Editar Pecas' : 'Novo Pecas';
+include 'header.php';
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>
