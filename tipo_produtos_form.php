@@ -3,6 +3,7 @@ require_once 'config.php';
 require_once 'auth.php';
 $id = $_GET['id'] ?? null;
 $nome = '';
+$error = '';
 if($id){
   $stmt = $pdo->prepare("SELECT id, nome FROM TIPO_PRODUTO WHERE id=?");
   $stmt->execute([$id]);
@@ -13,21 +14,32 @@ if($id){
 }
 if($_SERVER['REQUEST_METHOD']==='POST'){
   $nome = $_POST['nome'];
-  if($id){
-    $stmt = $pdo->prepare("UPDATE TIPO_PRODUTO SET nome=? WHERE id=?");
-    $stmt->execute([$nome, $id]);
-  } else {
-    $stmt = $pdo->prepare("INSERT INTO TIPO_PRODUTO (nome) VALUES (?)");
-    $stmt->execute([$nome]);
+  try {
+    if($id){
+      $stmt = $pdo->prepare("UPDATE TIPO_PRODUTO SET nome=? WHERE id=?");
+      $stmt->execute([$nome, $id]);
+    } else {
+      $stmt = $pdo->prepare("INSERT INTO TIPO_PRODUTO (nome) VALUES (?)");
+      $stmt->execute([$nome]);
+    }
+    header('Location: tipo_produtos_list.php');
+    exit;
+  } catch(PDOException $e){
+    if($e->errorInfo[1] == 1062){
+      $error = 'Já existe um tipo com este nome.';
+    } else {
+      throw $e;
+    }
   }
-  header('Location: tipo_produtos_list.php');
-  exit;
 }
 $pageTitle = $id ? 'Editar Tipo de Produto' : 'Novo Tipo de Produto';
 include 'header.php';
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>
+  <?php if($error): ?>
+    <p class="text-red-600 mb-2"><?= htmlspecialchars($error) ?></p>
+  <?php endif; ?>
   <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <label class="block mb-1">Nome</label>

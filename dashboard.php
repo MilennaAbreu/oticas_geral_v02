@@ -28,9 +28,8 @@ if ($showDashboard) {
     $stmt = $pdo->prepare("SELECT SUM(DESCONTO) as total_desconto FROM VENDAS WHERE DATA_VENDA BETWEEN ? AND ?");
     $stmt->execute([$start, $end]);
     $totalDesconto = $stmt->fetchColumn() ?: 0;
-    // Top 10 produtos
-    $stmt = $pdo->prepare("SELECT PRODUTO, ESTOQUE_ATUAL FROM vw_estoque_empresa ORDER BY ESTOQUE_ATUAL ASC LIMIT 10");
-    $stmt->execute();
+    // Top 10 produtos com menor estoque (sem considerar período)
+    $stmt = $pdo->query("SELECT NOME AS PRODUTO, ESTOQUE_ATUAL FROM PRODUTO ORDER BY ESTOQUE_ATUAL ASC LIMIT 10");
     $topProdutos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
