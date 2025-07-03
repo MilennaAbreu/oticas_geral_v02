@@ -66,6 +66,14 @@ require 'auth.php';
       border-radius: 0.25rem;
       width: 100%;
     }
+    .add-btn { margin-bottom: 1rem; }
+    .dataTables_wrapper { margin-top: 0.75rem; }
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_paginate,
+    .dataTables_wrapper .dataTables_info {
+      margin: 0.5rem 0;
+    }
   </style>
 </head>
 <body class="flex">

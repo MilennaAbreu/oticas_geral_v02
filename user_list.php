@@ -22,9 +22,12 @@ try {
     }
 }
 ?>
-<h2>Cadastro de Usuários</h2>
-<button class="add-btn bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" onclick="window.location.href='user_form.php'">Novo Usuário</button>
-<table id="userTable" class="display" style="width:100%; margin-top:10px;" class="min-w-full bg-white rounded shadow overflow-hidden">
+<div class="container mx-auto">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-semibold">Cadastro de Usuários</h2>
+    <button class="add-btn bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" onclick="window.location.href='user_form.php'">Novo Usuário</button>
+  </div>
+  <table id="userTable" class="display w-full">
     <thead>
         <tr><th class="bg-secondary text-white px-4 py-2">ID</th><th class="bg-secondary text-white px-4 py-2">Nome</th><th class="bg-secondary text-white px-4 py-2">Login</th><th class="bg-secondary text-white px-4 py-2">Permissões</th><th class="bg-secondary text-white px-4 py-2">Empresas</th><th class="bg-secondary text-white px-4 py-2">Ações</th></tr>
     </thead>
@@ -45,5 +48,6 @@ try {
         </tr>
         <?php endforeach; ?>
     </tbody>
-</table>
+  </table>
+</div>
 <?php include 'footer.php'; ?>
