@@ -1,6 +1,6 @@
 <?php
-require 'config.php';
-require 'auth.php';
+require_once 'config.php';
+require_once 'auth.php';
 
 $id             = $_POST['id'] ?? null;
 $nome           = $_POST['nome'] ?? '';

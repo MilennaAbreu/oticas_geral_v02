@@ -1,5 +1,5 @@
 <?php
-require 'config.php';
+require_once 'config.php';
 // Se já autenticado, redireciona para dashboard
 if (isset($_SESSION['user'])) {
     header("Location: dashboard.php");

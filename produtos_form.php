@@ -50,7 +50,7 @@ $tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASS
             <option value="<?= $c['ID'] ?>" <?= $produto['ID_CATEGORIA']==$c['ID'] ? 'selected':'' ?>><?= $c['NOME'] ?></option>
           <?php endforeach; ?>
         </select>
-        <button type="button" onclick="addCategoria()" class="ml-2 px-3 py-1 bg-gray-300 rounded">+</button>
+        <button type="button" onclick="openModal('modalCategoria')" class="ml-2 px-3 py-1 bg-gray-300 rounded">+</button>
       </div>
     </div>
     <div>
@@ -62,7 +62,7 @@ $tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASS
             <option value="<?= $t['ID'] ?>" <?= $produto['ID_TIPO']==$t['ID'] ? 'selected':'' ?>><?= $t['NOME'] ?></option>
           <?php endforeach; ?>
         </select>
-        <button type="button" onclick="addTipo()" class="ml-2 px-3 py-1 bg-gray-300 rounded">+</button>
+        <button type="button" onclick="openModal('modalTipo')" class="ml-2 px-3 py-1 bg-gray-300 rounded">+</button>
       </div>
     </div>
     <div>
@@ -75,26 +75,73 @@ $tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASS
     <div class="md:col-span-2">
       <button class="bg-primary text-white px-4 py-2 rounded">Salvar</button>
     </div>
-  </form>
+</form>
+<!-- Modais para cadastro rápido -->
+<div id="modalCategoria" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded w-80">
+    <h3 class="text-lg mb-2">Nova Categoria</h3>
+    <input id="catNome" type="text" class="border p-2 w-full mb-3" />
+    <div class="text-right">
+      <button type="button" class="mr-2 px-3 py-1" onclick="closeModal('modalCategoria')">Cancelar</button>
+      <button type="button" class="bg-primary text-white px-3 py-1 rounded" onclick="saveCategoria()">Salvar</button>
+    </div>
+  </div>
+</div>
+<div id="modalTipo" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded w-80">
+    <h3 class="text-lg mb-2">Novo Tipo</h3>
+    <input id="tipoNome" type="text" class="border p-2 w-full mb-3" />
+    <div class="text-right">
+      <button type="button" class="mr-2 px-3 py-1" onclick="closeModal('modalTipo')">Cancelar</button>
+      <button type="button" class="bg-primary text-white px-3 py-1 rounded" onclick="saveTipo()">Salvar</button>
+    </div>
+  </div>
+</div>
 </div>
 <script>
-function addCategoria() {
-  let nome = prompt("Nova categoria:");
-  if(nome){
-    fetch("categorias_add.php", {
-      method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"},
-      body: "nome=" + encodeURIComponent(nome)
-    }).then(() => location.reload());
-  }
+function openModal(id){
+  document.getElementById(id).classList.remove('hidden');
 }
-function addTipo() {
-  let nome = prompt("Novo tipo:");
-  if(nome){
-    fetch("tipo_produtos_add.php", {
-      method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"},
-      body: "nome=" + encodeURIComponent(nome)
-    }).then(() => location.reload());
-  }
+function closeModal(id){
+  document.getElementById(id).classList.add('hidden');
+}
+function saveCategoria(){
+  const nome = document.getElementById('catNome').value.trim();
+  if(!nome) return;
+  fetch('categorias_add.php', {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'nome='+encodeURIComponent(nome)
+  }).then(r=>r.json()).then(d=>{
+    if(d.success){
+      const select = document.querySelector('select[name="id_categoria"]');
+      const opt = document.createElement('option');
+      opt.value = d.id; opt.textContent = d.nome;
+      select.appendChild(opt);
+      select.value = d.id;
+      document.getElementById('catNome').value='';
+      closeModal('modalCategoria');
+    }
+  });
+}
+function saveTipo(){
+  const nome = document.getElementById('tipoNome').value.trim();
+  if(!nome) return;
+  fetch('tipo_produtos_add.php', {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'nome='+encodeURIComponent(nome)
+  }).then(r=>r.json()).then(d=>{
+    if(d.success){
+      const select = document.querySelector('select[name="id_tipo"]');
+      const opt = document.createElement('option');
+      opt.value = d.id; opt.textContent = d.nome;
+      select.appendChild(opt);
+      select.value = d.id;
+      document.getElementById('tipoNome').value='';
+      closeModal('modalTipo');
+    }
+  });
 }
 </script>
 <?php include 'footer.php'; ?>

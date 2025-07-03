@@ -1,6 +1,6 @@
 <?php
-require 'config.php';
-require 'auth.php';
+require_once 'config.php';
+require_once 'auth.php';
 $id = $_GET['id'] ?? null;
 if($id){
     $pdo->prepare("DELETE FROM TIPO_PRODUTO WHERE id=?")->execute([$id]);

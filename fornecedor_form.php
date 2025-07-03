@@ -1,6 +1,6 @@
 <?php
-require 'config.php';
-require 'auth.php';
+require_once 'config.php';
+require_once 'auth.php';
 $id = $_GET['id']??null;
 $nome=$cnpj=$contato=$cep=$rua=$bairro=$status=''; $id_cidade='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
