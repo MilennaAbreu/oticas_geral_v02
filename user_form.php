@@ -1,6 +1,12 @@
 <?php
 require_once 'config.php';
 require_once 'auth.php';
+
+function columnExists(PDO $pdo, string $table, string $column): bool {
+    $stmt = $pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+    $stmt->execute([$column]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+}
 $id = $_GET['id'] ?? null;
 
 $nome = $username = $permissoes = '';
@@ -14,20 +20,32 @@ $perfis = ['ADMINISTRADOR','DIRETOR','ADMINISTRATIVO','VENDEDOR'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = $_POST['nome'];
     $username = $_POST['username'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $passInput = $_POST['password'] ?? '';
+    $hashed = $passInput !== '' ? password_hash($passInput, PASSWORD_DEFAULT) : null;
     $permissoes = $_POST['permissoes'];
     $empresas_selected = $_POST['empresas'] ?? [];
+
     if ($id) {
-        $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, senha=?, permissoes=? WHERE id=?");
-        $stmt->execute([$nome, $username, $password, $permissoes, $id]);
-        $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE id_usuario=?")->execute([$id]);
+        if ($hashed) {
+            $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, senha=?, permissoes=? WHERE id=?");
+            $stmt->execute([$nome, $username, $hashed, $permissoes, $id]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, permissoes=? WHERE id=?");
+            $stmt->execute([$nome, $username, $permissoes, $id]);
+        }
+        if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
+            $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE id_usuario=?")->execute([$id]);
+        }
     } else {
         $stmt = $pdo->prepare("INSERT INTO USUARIO (nome, username, senha, permissoes) VALUES (?,?,?,?)");
-        $stmt->execute([$nome, $username, $password, $permissoes]);
+        $stmt->execute([$nome, $username, $hashed, $permissoes]);
         $id = $pdo->lastInsertId();
     }
-    $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (id_usuario, id_empresa) VALUES (?,?)");
-    foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
+
+    if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
+        $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (id_usuario, id_empresa) VALUES (?,?)");
+        foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
+    }
     header('Location: user_list.php');
     exit();
 }
@@ -40,9 +58,11 @@ if ($id) {
     $nome = $row['nome'];
     $username = $row['username'];
     $permissoes = $row['permissoes'];
-    $sel = $pdo->prepare("SELECT id_empresa FROM USUARIO_EMPRESA WHERE id_usuario=?");
-    $sel->execute([$id]);
-$empresas_selected = $sel->fetchAll(PDO::FETCH_COLUMN);
+    if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
+        $sel = $pdo->prepare("SELECT id_empresa FROM USUARIO_EMPRESA WHERE id_usuario=?");
+        $sel->execute([$id]);
+        $empresas_selected = $sel->fetchAll(PDO::FETCH_COLUMN);
+    }
 }
 $pageTitle = $id ? 'Editar Usuário' : 'Novo Usuário';
 include 'header.php';

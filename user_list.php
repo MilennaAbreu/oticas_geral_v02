@@ -2,17 +2,27 @@
 $pageTitle = 'Usuários';
 include 'header.php';
 
+function columnExists(PDO $pdo, string $table, string $column): bool {
+    $stmt = $pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+    $stmt->execute([$column]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+}
+
 // User list logic
 $permissoes = $_SESSION['permissoes'];
 $canDelete = strpos($permissoes, 'ADMINISTRADOR') !== false || strpos($permissoes, 'DIRETOR') !== false;
 try {
-    $stmt = $pdo->query("SELECT u.id, u.nome, u.username, u.permissoes, 
-        GROUP_CONCAT(e.nome SEPARATOR ', ') AS empresas
-        FROM USUARIO u
-        LEFT JOIN USUARIO_EMPRESA ue ON ue.id_usuario = u.id
-        LEFT JOIN EMPRESA e ON e.id = ue.id_empresa
-        GROUP BY u.id, u.nome, u.username, u.permissoes");
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (columnExists($pdo, 'USUARIO_EMPRESA', 'id_empresa')) {
+        $stmt = $pdo->query("SELECT u.id, u.nome, u.username, u.permissoes,
+            GROUP_CONCAT(e.nome SEPARATOR ', ') AS empresas
+            FROM USUARIO u
+            LEFT JOIN USUARIO_EMPRESA ue ON ue.id_usuario = u.id
+            LEFT JOIN EMPRESA e ON e.id = ue.id_empresa
+            GROUP BY u.id, u.nome, u.username, u.permissoes");
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        throw new PDOException('missing column');
+    }
 } catch (PDOException $e) {
     $stmt = $pdo->query("SELECT id, nome, username, permissoes FROM USUARIO");
     $users = [];
