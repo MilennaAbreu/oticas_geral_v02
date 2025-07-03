@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otica Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar collapsed">
+        <button class="toggle" aria-label="Menu">☰</button>
+        <ul class="menu">
+            <li class="title">Cadastros</li>
+            <li>
+                <a href="#" data-page="produtos">
+            <span class="icon">
+              <!-- ícone produtos -->
+              <svg width="17" height="12" viewBox="0 0 17 12" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4.25607 1.68267C4.34163 1.57302 4.4478 1.48502 4.56728 1.42472C4.68676 1.36442 4.81672 1.33324 4.94821 1.33333H6.07143C6.23245 1.33333 6.38688 1.2631 6.50074 1.13807C6.6146 1.01305 6.67857 0.843478 6.67857 0.666667C6.67857 0.489856 6.6146 0.320287 6.50074 0.195262C6.38688 0.0702381 6.23245 6.08294e-08 6.07143 6.08294e-08H4.94821C4.64162 -7.68045e-05 4.33865 0.0726937 4.06009 0.213316C3.78153 0.353939 3.53398 0.559083 3.33443 0.814667L0.511214 4.43133C0.181194 4.85433 -0.000135066 5.39301 7.54841e-08 5.95V9C7.54841e-08 9.79565 0.28785 10.5587 0.800226 11.1213C1.3126 11.6839 2.00753 12 2.73214 12H5.16071C5.88532 12 6.58025 11.6839 7.09263 11.1213C7.60501 10.5587 7.89286 9.79565 7.89286 9V7.33333H9.10714V9C9.10714 9.79565 9.39499 10.5587 9.90737 11.1213C10.4197 11.6839 11.1147 12 11.8393 12H14.2679C14.9925 12 15.6874 11.6839 16.1998 11.1213C16.7122 10.5587 17 9.79565 17 9V5.95C17 5.39292 16.8184 4.85424 16.4882 4.43133L13.665 0.814667C13.4655 0.559169 13.218 0.354075 12.9396 0.213456C12.6611 0.0728363 12.3583 1.93672e-05 12.0518 6.08294e-08H10.9286C10.7675 6.08294e-08 10.6131 0.0702381 10.4993 0.195262C10.3854 0.320287 10.3214 0.489856 10.3214 0.666667C10.3214 0.843478 10.3854 1.01305 10.4993 1.13807C10.6131 1.2631 10.7675 1.33333 10.9286 1.33333H12.0518C12.1832 1.33334 12.313 1.36456 12.4324 1.42486C12.5518 1.48516 12.6578 1.57311 12.7433 1.68267L14.5526 4H11.2321C10.7211 3.99986 10.227 4.20197 9.84066 4.5693C9.45428 4.93663 9.2014 5.44457 9.12839 6H7.87161C7.7986 5.44457 7.54572 4.93663 7.15934 4.5693C6.77295 4.20197 6.27894 3.99986 5.76786 4H2.44739L4.25607 1.68267Z" fill="white"/>
+              </svg>
+            </span>
+                    <span class="label">Produtos</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" data-page="clientes">
+            <span class="icon">
+              <!-- ícone clientes -->
+              <svg width="20" height="12" viewBox="0 0 20 12" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6 6C5.20435 6 4.44129 5.68393 3.87868 5.12132C3.31607 4.55871 3 3.79565 3 3C3 2.20435 3.31607 1.44129 3.87868 0.87868C4.44129 0.316071 5.20435 0 6 0C6.79565 0 7.55871 0.316071 8.12132 0.87868C8.68393 1.44129 9 2.20435 9 3C9 3.79565 8.68393 4.55871 8.12132 5.12132C7.55871 5.68393 6.79565 6 6 6ZM14 6C13.2044 6 12.4413 5.68393 11.8787 5.12132C11.3161 4.55871 11 3.79565 11 3C11 2.20435 11.3161 1.44129 11.8787 0.87868C12.4413 0.316071 13.2044 0 14 0C14.7956 0 15.5587 0.316071 16.1213 0.87868C16.6839 1.44129 17 2.20435 17 3C17 3.79565 16.6839 4.55871 16.1213 5.12132C15.5587 5.68393 14.7956 6 14 6ZM6 8C7.13517 7.99865 8.25757 8.23951 9.29224 8.70649C10.3269 9.17348 11.25 9.85583 12 10.708V12H0V10.708C0.749953 9.85583 1.67309 9.17348 2.70776 8.70649C3.74243 8.23951 4.86483 7.99865 6 8ZM14 12V9.952L13.5 9.385C13.1185 8.95201 12.7003 8.55286 12.25 8.192C12.8245 8.06381 13.4114 7.99942 14 8C15.1352 7.99865 16.2576 8.23951 17.2922 8.70649C18.3269 9.17348 19.25 9.85583 20 10.708V12H14Z" fill="white"/>
+              </svg>
+            </span>
+                    <span class="label">Clientes</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+    <main id="content">
+        <section id="home" class="page active">
+            <h1>Bem-vindo</h1>
+            <p>Selecione um item no menu.</p>
+        </section>
+        <section id="produtos" class="page">
+            <h1>Produtos</h1>
+            <button id="novo-produto">Novo</button>
+            <table id="lista-produtos">
+                <thead><tr><th>ID</th><th>Nome</th><th>Tipo</th><th>Categoria</th><th>Marca</th><th>Código</th><th>Un. Med.</th><th>Valor</th><th>Estoque</th><th>Status</th><th>Imagem</th><th>Ações</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </section>
+        <section id="produto-form" class="page">
+            <h1>Cadastro de Produto</h1>
+            <form id="form-produto" enctype="multipart/form-data">
+                <input type="hidden" name="id">
+                <div class="row">
+                    <div class="col"><input name="nome" placeholder="Nome" required></div>
+                    <div class="col input-group">
+                        <select name="id_tipo" id="id_tipo">
+                            <option value="">-- Selecione Tipo --</option>
+                        </select>
+                        <button type="button" id="nova-tipo" title="Novo tipo">+</button>
+                    </div>
+                    <div class="col input-group">
+                        <select name="id_categoria" id="id_categoria">
+                            <option value="">-- Selecione Categoria --</option>
+                        </select>
+                        <button type="button" id="nova-categoria" title="Nova categoria">+</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col"><input name="marca" placeholder="Marca"></div>
+                    <div class="col"><input name="codigo" placeholder="Código"></div>
+                    <div class="col"><input name="unidade_medida" placeholder="Unidade" value="UN"></div>
+                </div>
+                <div class="row">
+                    <div class="col"><input name="valor_unitario" placeholder="Valor" type="number"></div>
+                    <div class="col"><input name="estoque_atual" placeholder="Estoque" type="number"></div>
+                    <div class="col input-group"><select name="status"><option>ATIVO</option><option>INATIVO</option></select></div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label>Imagem:</label>
+                        <input type="file" name="imagem" accept="image/*">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelar-produto">Cancelar</button>
+                    <button type="submit">Salvar</button>
+                </div>
+            </form>
+        </section>
+        <section id="clientes" class="page">
+            <h1>Clientes</h1>
+            <button id="novo-cliente">Novo Cliente</button>
+            <form id="form-cliente" class="hidden">
+                <input type="hidden" name="id">
+                <div class="row">
+                    <div class="col"><input name="nome" placeholder="Nome"></div>
+                    <div class="col"><input name="cpf" placeholder="CPF"></div>
+                    <div class="col"><input name="data_nascimento" type="date" placeholder="Data de Nascimento"></div>
+                </div>
+                <div class="row">
+                    <div class="col"><input name="cep" placeholder="CEP"></div>
+                    <div class="col"><input name="rua" placeholder="Rua"></div>
+                    <div class="col"><input name="bairro" placeholder="Bairro"></div>
+                </div>
+                <div class="row">
+                    <div class="col input-group"><select name="id_cidade" id="cidade-select"></select></div>
+                    <div class="col"><button type="button" id="nova-cidade">+</button></div>
+                    <div class="col"><input name="contato" placeholder="Contato"></div>
+                </div>
+                <div class="row">
+                    <div class="col input-group"><select name="status"><option>ATIVO</option><option>INATIVO</option></select></div>
+                    <div class="col"></div>
+                    <div class="col actions-col"><button type="button" id="cancelar-cliente">Cancelar</button><button type="submit">Salvar</button></div>
+                </div>
+            </form>
+            <table id="lista-clientes">
+                <thead><tr><th>ID</th><th>Nome</th><th>CPF</th><th>Cidade</th><th>Contato</th><th>Ações</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </section>
+    </main>
+</div>
+<script src="js/app.js"></script>
+</body>
+</html>

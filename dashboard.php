@@ -1,0 +1,84 @@
+<?php
+$pageTitle = 'Dashboard';
+include 'header.php';
+
+// Definir permissões e período
+$permissoes = $_SESSION['permissoes'];
+$isAdmin = strpos($permissoes, 'ADMINISTRADOR') !== false;
+$isDiretor = strpos($permissoes, 'DIRETOR') !== false;
+$showDashboard = $isAdmin || $isDiretor;
+
+$start = $_GET['start'] ?? date('Y-m-01');
+$end = $_GET['end'] ?? date('Y-m-d');
+
+if ($showDashboard) {
+    // Contas a Pagar
+    $stmt = $pdo->prepare("SELECT SUM(VALOR_PARCELA) as total_pagar FROM CONTAS_A_PAGAR WHERE DATA_VENCIMENTO BETWEEN ? AND ?");
+    $stmt->execute([$start, $end]);
+    $totalPagar = $stmt->fetchColumn() ?: 0;
+    // Contas a Receber
+    $stmt = $pdo->prepare("SELECT SUM(VALOR) as total_receber FROM CONTAS_A_RECEBER WHERE DATA_VENCIMENTO BETWEEN ? AND ?");
+    $stmt->execute([$start, $end]);
+    $totalReceber = $stmt->fetchColumn() ?: 0;
+    // Quantidade de vendas
+    $stmt = $pdo->prepare("SELECT COUNT(*) as cnt_vendas FROM VENDAS WHERE DATA_VENDA BETWEEN ? AND ?");
+    $stmt->execute([$start, $end]);
+    $cntVendas = $stmt->fetchColumn() ?: 0;
+    // Desconto
+    $stmt = $pdo->prepare("SELECT SUM(DESCONTO) as total_desconto FROM VENDAS WHERE DATA_VENDA BETWEEN ? AND ?");
+    $stmt->execute([$start, $end]);
+    $totalDesconto = $stmt->fetchColumn() ?: 0;
+    // Top 10 produtos
+    $stmt = $pdo->prepare("SELECT PRODUTO, ESTOQUE_ATUAL FROM vw_estoque_empresa ORDER BY ESTOQUE_ATUAL ASC LIMIT 10");
+    $stmt->execute();
+    $topProdutos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+?>
+<div class="container mx-auto">
+    <div class="period-form mb-4 flex items-center space-x-2">
+        <input type="date" name="start" value="<?= htmlspecialchars($start) ?>" class="border rounded px-3 py-2 focus:ring focus:ring-primary/50">
+        <span>até</span>
+        <input type="date" name="end" value="<?= htmlspecialchars($end) ?>" class="border rounded px-3 py-2 focus:ring focus:ring-primary/50">
+        <button onclick="return document.forms[0].submit();" class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition">Filtrar</button>
+    </div>
+    <?php if ($showDashboard): ?>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded shadow p-4">
+            <h3 class="font-semibold mb-2">Contas a Pagar x Receber</h3>
+            <canvas id="chartContas"></canvas>
+        </div>
+        <div class="bg-white rounded shadow p-4">
+            <h3 class="font-semibold mb-2">Vendas Efetuadas</h3>
+            <p class="text-xl"><?= $cntVendas ?></p>
+        </div>
+        <div class="bg-white rounded shadow p-4">
+            <h3 class="font-semibold mb-2">Desconto Concedido</h3>
+            <p class="text-xl"><?= number_format($totalDesconto,2,',','.') ?></p>
+        </div>
+    </div>
+    <h3 class="font-semibold mb-2">Top 10 Produtos com Menor Estoque</h3>
+    <table class="min-w-full bg-white rounded shadow mb-6">
+        <thead class="bg-secondary text-white">
+            <tr><th class="p-2">Produto</th><th class="p-2">Estoque Atual</th></tr>
+        </thead>
+        <tbody>
+            <?php foreach($topProdutos as $prod): ?>
+            <tr><td class="border-t p-2"><?= htmlspecialchars($prod['PRODUTO']) ?></td><td class="border-t p-2"><?= $prod['ESTOQUE_ATUAL'] ?></td></tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('chartContas').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: { labels: ['Pagar','Receber'], datasets: [{ label:'Valores', data:[<?= $totalPagar ?>,<?= $totalReceber ?>] }] },
+            options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
+        });
+    });
+    </script>
+    <?php else: ?>
+    <h1 class="text-2xl">Olá, <?= htmlspecialchars($_SESSION['username']) ?>!</h1>
+    <?php endif; ?>
+</div>
+<?php include 'footer.php'; ?>

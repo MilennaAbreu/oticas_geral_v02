@@ -1,0 +1,154 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    background: #FFF7F7;
+    color: #333;
+}
+.app {
+    display: flex;
+    height: 100vh;
+}
+.sidebar {
+    background: #8E070D;
+    color: #fff;
+    width: 200px;
+    padding: 10px;
+    transition: width 0.3s;
+    overflow: hidden;
+}
+.sidebar.collapsed {
+    width: 60px;
+}
+.sidebar .toggle {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    width: 100%;
+    text-align: center;
+}
+.menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.menu .title {
+    margin: 10px 0;
+    font-weight: bold;
+}
+.menu li {
+    margin: 5px 0;
+}
+.menu a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #fff;
+    padding: 5px;
+}
+.menu a:hover {
+    background: rgba(255,255,255,0.1);
+}
+.menu .icon {
+    display: none;
+    flex: 0 0 auto;
+    justify-content: center;
+    align-items: center;
+}
+.menu .label {
+    margin-left: 10px;
+}
+.sidebar.collapsed .menu .icon {
+    display: flex;
+    width: 32px;
+    height: 32px;
+}
+.sidebar.collapsed .menu .icon svg {
+    width: 20px;
+    height: 20px;
+}
+.sidebar.collapsed .menu .label {
+    display: none;
+}
+.sidebar.collapsed ul.menu li.title {
+    display: none;
+}
+
+main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+.page {
+    display: none;
+}
+.page.active {
+    display: block;
+}
+button {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid #8E070D;
+    background: #8E070D;
+    color: #fff;
+    cursor: pointer;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+}
+th {
+    background: #8E070D;
+    color: #fff;
+}
+input, select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-family: inherit;
+    width: 100%;
+}
+.row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    justify-content: space-around;
+    column-gap: 20px;
+    row-gap: 30px;
+    margin-bottom: 30px;
+    padding: 0 40px;
+}
+.input-group {
+    display: flex;
+    gap: 8px;
+}
+.actions-col {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.hidden {
+    display: none;
+}
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 0 40px;
+}
+
+/* tabela de produtos: imagem maior e nítida */
+#lista-produtos img {
+    width: 100px;
+    height: auto;
+    object-fit: contain;   /* garante proporção correta */
+    border-radius: 4px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.2);
+}

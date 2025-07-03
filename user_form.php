@@ -1,0 +1,89 @@
+<?php
+$id = $_GET['id'] ?? null;
+$pageTitle = $id ? 'Editar Usuário' : 'Novo Usuário';
+include 'header.php';
+
+$nome = $username = $permissoes = '';
+$empresas_selected = [];
+
+// Fetch empresas and perfis
+$emps = $pdo->query("SELECT id, nome FROM EMPRESA ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
+$perfis = ['ADMINISTRADOR','DIRETOR','ADMINISTRATIVO','VENDEDOR'];
+
+// Handle submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nome = $_POST['nome'];
+    $username = $_POST['username'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $permissoes = $_POST['permissoes'];
+    $empresas_selected = $_POST['empresas'] ?? [];
+    if ($id) {
+        $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, senha=?, permissoes=? WHERE id=?");
+        $stmt->execute([$nome, $username, $password, $permissoes, $id]);
+        $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE id_usuario=?")->execute([$id]);
+    } else {
+        $stmt = $pdo->prepare("INSERT INTO USUARIO (nome, username, senha, permissoes) VALUES (?,?,?,?)");
+        $stmt->execute([$nome, $username, $password, $permissoes]);
+        $id = $pdo->lastInsertId();
+    }
+    $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (id_usuario, id_empresa) VALUES (?,?)");
+    foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
+    header('Location: user_list.php');
+    exit();
+}
+
+// Load existing
+if ($id) {
+    $stmt = $pdo->prepare("SELECT nome, username, permissoes FROM USUARIO WHERE id=?");
+    $stmt->execute([$id]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $nome = $row['nome'];
+    $username = $row['username'];
+    $permissoes = $row['permissoes'];
+    $sel = $pdo->prepare("SELECT id_empresa FROM USUARIO_EMPRESA WHERE id_usuario=?");
+    $sel->execute([$id]);
+    $empresas_selected = $sel->fetchAll(PDO::FETCH_COLUMN);
+}
+?>
+<div class="container mx-auto">
+    <h2 class="text-2xl font-semibold mb-4"><?= htmlspecialchars($pageTitle) ?></h2>
+    <form id="userForm" method="post" class="space-y-4">
+        <div>
+            <label class="block mb-1">Nome</label>
+            <input type="text" name="nome" value="<?= htmlspecialchars($nome) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full">
+        </div>
+        <div>
+            <label class="block mb-1">Login</label>
+            <input type="text" name="username" value="<?= htmlspecialchars($username) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full">
+        </div>
+        <div>
+            <label class="block mb-1">Senha <?= $id ? '(Digite para alterar)' : '' ?></label>
+            <input type="password" name="password" <?= $id ? '' : 'required' ?> class="border-b-2 border-gray-300 px-3 py-2 w-full">
+        </div>
+        <div>
+            <label class="block mb-1">Permissões</label>
+            <select name="permissoes" class="border-b-2 border-gray-300 px-3 py-2 w-full" required>
+                <?php foreach ($perfis as $p): ?>
+                <option value="<?= $p ?>" <?= $p == $permissoes ? 'selected' : '' ?>><?= $p ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div>
+            <label class="block mb-1">Empresas</label>
+            <select name="empresas[]" id="empresas" multiple required class="border-b-2 border-gray-300 px-3 py-2 w-full">
+                <?php foreach ($emps as $e): ?>
+                <option value="<?= $e['id'] ?>" <?= in_array($e['id'], $empresas_selected) ? 'selected' : '' ?>><?= htmlspecialchars($e['nome']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition"><?= $id ? 'Atualizar' : 'Salvar' ?></button>
+        </div>
+    </form>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    $('#cidade, #empresas').select2({ width: '100%' });
+});
+</script>
+<?php include 'footer.php'; ?>
