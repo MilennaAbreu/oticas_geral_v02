@@ -14,18 +14,24 @@ $stmt->execute([$_SESSION['venda']['ID_CLIENTE']]);
 $cRow = $stmt->fetch(PDO::FETCH_ASSOC);
 if($cRow) $cliente = $cRow;
 
+// valores default dos campos
+$idCond  = $_POST['id_condicao_pagamento'] ?? '';
+$idMet   = $_POST['id_metodo_pagamento'] ?? '';
+$idFrete = $_POST['id_frete'] ?? '';
+$dataEntrega = $_POST['data_entrega'] ?? '';
+$descontoGeral = isset($_POST['desconto_geral']) ? str_replace(',', '.', $_POST['desconto_geral']) : '0';
+$telContato    = $_POST['telefone_contato'] ?? $cliente['CONTATO'];
+$respContato   = $_POST['responsavel_contato'] ?? '';
+$cepEntrega    = $_POST['cep_entrega'] ?? $cliente['CEP'];
+$ruaEntrega    = $_POST['rua_entrega'] ?? $cliente['RUA'];
+$bairroEntrega = $_POST['bairro_entrega'] ?? $cliente['BAIRRO'];
+$idCidade      = $_POST['id_cidade'] ?? $cliente['ID_CIDADE'];
+
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
-    $idCond  = $_POST['id_condicao_pagamento'];
-    $idMet   = $_POST['id_metodo_pagamento'];
-    $idFrete = $_POST['id_frete'] ?? null;
-    $dataEntrega = $_POST['data_entrega'] ?: null;
-    $descontoGeral = (float)str_replace(',', '.', $_POST['desconto_geral'] ?? '0');
-    $telContato    = $_POST['telefone_contato'] ?? null;
-    $respContato   = $_POST['responsavel_contato'] ?? null;
-    $cepEntrega    = preg_replace('/\D/','', $_POST['cep_entrega'] ?? '');
-    $ruaEntrega    = $_POST['rua_entrega'] ?? null;
-    $bairroEntrega = $_POST['bairro_entrega'] ?? null;
-    $idCidade      = $_POST['id_cidade'] ?? null;
+    $idFrete = $idFrete ?: null;
+    $dataEntrega = $dataEntrega ?: null;
+    $descontoGeral = (float)str_replace(',', '.', $descontoGeral ?: '0');
+    $cepEntrega = preg_replace('/\D/','', $cepEntrega ?: '');
 
     // calcula valores
     $valorVenda = 0; $valorDescItens = 0;
@@ -96,9 +102,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         exit;
     } catch(Exception $e){
         $pdo->rollBack();
-        $error = 'Erro ao salvar venda';
-        // Uncomment the line below during debugging to inspect the issue
-        // $error .= ': ' . $e->getMessage();
+        $error = 'Erro ao salvar venda: ' . $e->getMessage();
     }
 }
 
@@ -112,10 +116,32 @@ $metodos   = $pdo->query("SELECT ID, NOME FROM METODO_PAGAMENTO ORDER BY NOME")-
 $fretes    = $pdo->query("SELECT ID, DESCRICAO, VALOR FROM FRETE ORDER BY DESCRICAO")->fetchAll(PDO::FETCH_ASSOC);
 $cidades   = $pdo->query("SELECT ID, CONCAT(NOME,'/',UF) AS NOME FROM CIDADE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 
-$valorVenda = 0; $valorDescItens=0; foreach($itens as $it){ $valorVenda += $it['QUANTIDADE']*$it['VALOR_UNITARIO']; $valorDescItens += $it['DESCONTO']; }
-$descontoGeral = 0;
+$valorVenda = 0; $valorDescItens=0; foreach($itens as $it){
+    $valorVenda += $it['QUANTIDADE']*$it['VALOR_UNITARIO'];
+    $valorDescItens += $it['DESCONTO'];
+}
 $freteValor = 0;
-$valorTotal = $valorVenda - $valorDescItens;
+if($idFrete){
+    $st = $pdo->prepare("SELECT VALOR FROM FRETE WHERE ID=?");
+    $st->execute([$idFrete]);
+    $freteValor = (float)$st->fetchColumn();
+}
+$juros = 0;
+if($idMet && $idCond){
+    try{
+        $cols = $pdo->query("SHOW COLUMNS FROM JUROS_METODO_CONDICAO")->fetchAll(PDO::FETCH_COLUMN);
+        $jCol = null;
+        foreach($cols as $c){ if(strtolower($c)=='juros' || strtolower($c)=='juros_aplicado'){ $jCol=$c; break; } }
+        if($jCol){
+            $st = $pdo->prepare("SELECT `{$jCol}` FROM JUROS_METODO_CONDICAO WHERE ID_METODO_PAGAMENTO=? AND ID_CONDICAO_PAGAMENTO=?");
+            $st->execute([$idMet,$idCond]);
+            $val = $st->fetchColumn();
+            if($val!==false) $juros=(float)$val;
+        }
+    }catch(Exception $e){ $juros=0; }
+}
+$valorTotal = $valorVenda - $valorDescItens - (float)$descontoGeral + $freteValor;
+$valorLiquidoCalc = $valorTotal + ($valorTotal * $juros/100);
 
 $pageTitle = 'Pagamento';
 include 'header.php';
@@ -131,7 +157,7 @@ include 'header.php';
       <select name="id_condicao_pagamento" class="border p-2 w-full rounded" required>
         <option value="">Selecione</option>
         <?php foreach($condicoes as $c): ?>
-          <option value="<?= $c['ID'] ?>"><?= htmlspecialchars($c['NOME']) ?></option>
+          <option value="<?= $c['ID'] ?>" <?= $idCond==$c['ID']?'selected':'' ?>><?= htmlspecialchars($c['NOME']) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
@@ -140,7 +166,7 @@ include 'header.php';
       <select name="id_metodo_pagamento" class="border p-2 w-full rounded" required>
         <option value="">Selecione</option>
         <?php foreach($metodos as $m): ?>
-          <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
+          <option value="<?= $m['ID'] ?>" <?= $idMet==$m['ID']?'selected':'' ?>><?= htmlspecialchars($m['NOME']) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
@@ -149,55 +175,55 @@ include 'header.php';
       <select name="id_frete" class="border p-2 w-full rounded" onchange="calcTot()">
         <option value="" data-valor="0">Selecione</option>
         <?php foreach($fretes as $f): ?>
-          <option value="<?= $f['ID'] ?>" data-valor="<?= $f['VALOR'] ?>"><?= htmlspecialchars($f['DESCRICAO']) ?></option>
+          <option value="<?= $f['ID'] ?>" data-valor="<?= $f['VALOR'] ?>" <?= $idFrete==$f['ID']?'selected':'' ?>><?= htmlspecialchars($f['DESCRICAO']) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
     <div>
       <label class="block mb-1">Data de Entrega</label>
-      <input type="date" name="data_entrega" class="border p-2 w-full rounded">
+      <input type="date" name="data_entrega" value="<?= htmlspecialchars($dataEntrega) ?>" class="border p-2 w-full rounded">
     </div>
     <div>
       <label class="block mb-1">Desconto Geral</label>
-      <input type="text" name="desconto_geral" id="descontoGeral" value="0" class="border p-2 w-full rounded" onchange="calcTot()">
+      <input type="text" name="desconto_geral" id="descontoGeral" value="<?= htmlspecialchars($descontoGeral) ?>" class="border p-2 w-full rounded" onchange="calcTot()">
     </div>
     <div>
       <label class="block mb-1">Telefone Contato</label>
-      <input type="text" name="telefone_contato" value="<?= htmlspecialchars($cliente['CONTATO']) ?>" class="border p-2 w-full rounded">
+      <input type="text" name="telefone_contato" value="<?= htmlspecialchars($telContato) ?>" class="border p-2 w-full rounded">
     </div>
     <div>
       <label class="block mb-1">Responsável Contato</label>
-      <input type="text" name="responsavel_contato" class="border p-2 w-full rounded">
+      <input type="text" name="responsavel_contato" value="<?= htmlspecialchars($respContato) ?>" class="border p-2 w-full rounded">
     </div>
     <div>
       <label class="block mb-1">CEP Entrega</label>
-      <input type="text" name="cep_entrega" value="<?= htmlspecialchars($cliente['CEP']) ?>" class="border p-2 w-full rounded">
+      <input type="text" name="cep_entrega" value="<?= htmlspecialchars($cepEntrega) ?>" class="border p-2 w-full rounded">
     </div>
     <div>
       <label class="block mb-1">Rua Entrega</label>
-      <input type="text" name="rua_entrega" value="<?= htmlspecialchars($cliente['RUA']) ?>" class="border p-2 w-full rounded">
+      <input type="text" name="rua_entrega" value="<?= htmlspecialchars($ruaEntrega) ?>" class="border p-2 w-full rounded">
     </div>
     <div>
       <label class="block mb-1">Bairro Entrega</label>
-      <input type="text" name="bairro_entrega" value="<?= htmlspecialchars($cliente['BAIRRO']) ?>" class="border p-2 w-full rounded">
+      <input type="text" name="bairro_entrega" value="<?= htmlspecialchars($bairroEntrega) ?>" class="border p-2 w-full rounded">
     </div>
     <div>
       <label class="block mb-1">Cidade</label>
       <select name="id_cidade" class="border p-2 w-full rounded">
         <option value="">Selecione</option>
         <?php foreach($cidades as $ci): ?>
-          <option value="<?= $ci['ID'] ?>" <?= $cliente['ID_CIDADE']==$ci['ID']?'selected':'' ?>><?= htmlspecialchars($ci['NOME']) ?></option>
+          <option value="<?= $ci['ID'] ?>" <?= $idCidade==$ci['ID']?'selected':'' ?>><?= htmlspecialchars($ci['NOME']) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
     <div class="md:col-span-2">
       <p>Valor Venda: R$ <span id="vVenda"><?= number_format($valorVenda,2,',','.') ?></span></p>
       <p>Desconto Itens: R$ <span id="vDescItens"><?= number_format($valorDescItens,2,',','.') ?></span></p>
-      <p>Desconto Geral: R$ <span id="vDescGeral">0.00</span></p>
-      <p>Frete: R$ <span id="vFrete">0.00</span></p>
-      <p>Juros (%): <span id="vJuros">0</span></p>
+      <p>Desconto Geral: R$ <span id="vDescGeral"><?= number_format($descontoGeral,2,',','.') ?></span></p>
+      <p>Frete: R$ <span id="vFrete"><?= number_format($freteValor,2,',','.') ?></span></p>
+      <p>Juros (%): <span id="vJuros"><?= number_format($juros,2,',','.') ?></span></p>
       <p>Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
-      <p>Valor Líquido: R$ <span id="vLiquido"><?= number_format($valorTotal,2,',','.') ?></span></p>
+      <p>Valor Líquido: R$ <span id="vLiquido"><?= number_format($valorLiquidoCalc,2,',','.') ?></span></p>
     </div>
     <div class="md:col-span-2">
       <button name="voltar" class="px-4 py-2 bg-gray-300 rounded mr-2">Voltar</button>
@@ -230,7 +256,7 @@ function calcTot(){
 }
 document.querySelector('[name=id_metodo_pagamento]').addEventListener('change',fetchJuros);
 document.querySelector('[name=id_condicao_pagamento]').addEventListener('change',fetchJuros);
-calcTot();
+document.addEventListener('DOMContentLoaded',fetchJuros);
 </script>
 <?php include 'footer.php'; ?>
 

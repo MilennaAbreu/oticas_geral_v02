@@ -107,6 +107,8 @@ function addRow(){
   <td><input type="text" name="desconto[]" value="0" class="border p-1 w-full" onchange="calc()"></td>
   <td><button type="button" onclick="removeRow(this)" class="text-red-600">-</button></td>`;
   document.getElementById('itemRows').appendChild(tr);
+  $(tr).find('select').select2({width:'100%'});
+  updateProd(tr.querySelector('select'));
 }
 function removeRow(btn){
   btn.parentElement.parentElement.remove();
