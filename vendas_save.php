@@ -22,11 +22,19 @@ $obs         = $_POST['observacao'] ?? null;
 $status      = $_POST['status'] ?? 'PENDENTE';
 $id_empresa  = $_POST['id_empresa'] ?? null;
 
-// busca juros aplicado
-$stmt = $pdo->prepare("SELECT juros FROM JUROS_METODO_CONDICAO WHERE ID_METODO_PAGAMENTO = ? AND ID_CONDICAO_PAGAMENTO = ?");
-$stmt->execute([$id_metodo, $id_condicao]);
-$juros_aplicado = $stmt->fetchColumn();
-if($juros_aplicado === false) $juros_aplicado = 0.00;
+// busca juros aplicado de forma dinâmica
+$juros_aplicado = 0.00;
+try {
+    $cols = $pdo->query("SHOW COLUMNS FROM JUROS_METODO_CONDICAO")->fetchAll(PDO::FETCH_COLUMN);
+    $col = null;
+    foreach($cols as $c){ if(strtolower($c)=='juros' || strtolower($c)=='juros_aplicado'){ $col = $c; break; } }
+    if($col){
+        $stmt = $pdo->prepare("SELECT `{$col}` FROM JUROS_METODO_CONDICAO WHERE ID_METODO_PAGAMENTO = ? AND ID_CONDICAO_PAGAMENTO = ?");
+        $stmt->execute([$id_metodo, $id_condicao]);
+        $val = $stmt->fetchColumn();
+        if($val !== false) $juros_aplicado = (float)$val;
+    }
+} catch(Exception $e){}
 
 $valor_liquido = $valor_venda * (1 - $juros_aplicado/100);
 
