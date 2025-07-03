@@ -7,7 +7,7 @@ $produto = [
     'NOME'           => '',
     'ID_TIPO'        => '',
     'ID_CATEGORIA'   => '',
-    'MARCA'          => '',
+    'ID_MARCA'       => '',
     'CODIGO'         => '',
     'UNIDADE_MEDIDA' => 'UN',
     'VALOR_UNITARIO' => '',
@@ -23,13 +23,25 @@ if ($id) {
 }
 $categorias = $pdo->query("SELECT * FROM CATEGORIA_PRODUTO")->fetchAll(PDO::FETCH_ASSOC);
 $tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASSOC);
+$marcas     = $pdo->query("SELECT * FROM MARCA_PRODUTO")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4"><?= $id ? 'Editar' : 'Novo' ?> Produto</h2>
   <form method="POST" action="produtos_save.php" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <input type="hidden" name="id" value="<?= $id ?>">
     <div><label>Nome</label><input name="nome" value="<?= $produto['NOME'] ?>" class="border p-2 w-full rounded" required></div>
-    <div><label>Marca</label><input name="marca" value="<?= $produto['MARCA'] ?>" class="border p-2 w-full rounded"></div>
+    <div>
+      <label>Marca</label>
+      <div class="flex">
+        <select name="id_marca" class="border p-2 w-full rounded">
+          <option value="">Selecione</option>
+          <?php foreach($marcas as $m): ?>
+            <option value="<?= $m['ID'] ?>" <?= $produto['ID_MARCA']==$m['ID'] ? 'selected':'' ?>><?= $m['NOME'] ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" onclick="openModal('modalMarca')" class="ml-2 px-3 py-1 bg-gray-300 rounded">+</button>
+      </div>
+    </div>
     <div><label>Código</label><input name="codigo" value="<?= $produto['CODIGO'] ?>" class="border p-2 w-full rounded"></div>
     <div><label>Unidade de Medida</label><input name="unidade_medida" value="<?= $produto['UNIDADE_MEDIDA'] ?>" class="border p-2 w-full rounded"></div>
     <div><label>Valor Unitário</label><input name="valor_unitario" value="<?= $produto['VALOR_UNITARIO'] ?>" class="border p-2 w-full rounded" required></div>
@@ -97,6 +109,16 @@ $tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASS
     </div>
   </div>
 </div>
+<div id="modalMarca" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded w-80">
+    <h3 class="text-lg mb-2">Nova Marca</h3>
+    <input id="marcaNome" type="text" class="border p-2 w-full mb-3" />
+    <div class="text-right">
+      <button type="button" class="mr-2 px-3 py-1" onclick="closeModal('modalMarca')">Cancelar</button>
+      <button type="button" class="bg-primary text-white px-3 py-1 rounded" onclick="saveMarca()">Salvar</button>
+    </div>
+  </div>
+</div>
 </div>
 <script>
 function openModal(id){
@@ -140,6 +162,25 @@ function saveTipo(){
       select.value = d.id;
       document.getElementById('tipoNome').value='';
       closeModal('modalTipo');
+    }
+  });
+}
+function saveMarca(){
+  const nome = document.getElementById('marcaNome').value.trim();
+  if(!nome) return;
+  fetch('marcas_add.php', {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'nome='+encodeURIComponent(nome)
+  }).then(r=>r.json()).then(d=>{
+    if(d.success){
+      const select = document.querySelector('select[name="id_marca"]');
+      const opt = document.createElement('option');
+      opt.value = d.id; opt.textContent = d.nome;
+      select.appendChild(opt);
+      select.value = d.id;
+      document.getElementById('marcaNome').value='';
+      closeModal('modalMarca');
     }
   });
 }

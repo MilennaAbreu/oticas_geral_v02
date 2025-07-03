@@ -9,7 +9,7 @@ $sql = "SELECT p.ID,
                p.NOME,
                c.NOME AS CATEGORIA,
                t.NOME AS TIPO,
-               p.MARCA,
+               m.NOME AS MARCA,
                p.CODIGO,
                p.UNIDADE_MEDIDA,
                p.VALOR_UNITARIO,
@@ -18,7 +18,8 @@ $sql = "SELECT p.ID,
                p.IMAGEM
         FROM PRODUTO p
         LEFT JOIN CATEGORIA_PRODUTO c ON p.ID_CATEGORIA = c.ID
-        LEFT JOIN TIPO_PRODUTO t      ON p.ID_TIPO      = t.ID";
+        LEFT JOIN TIPO_PRODUTO t      ON p.ID_TIPO      = t.ID
+        LEFT JOIN MARCA_PRODUTO m     ON p.ID_MARCA     = m.ID";
 
 $items = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 $error = isset($_GET['erro']);

@@ -104,8 +104,8 @@ require_once 'auth.php';
           <li class="has-submenu">
             <div class="menu-item">Produtos</div>
             <ul class="submenu pl-6 space-y-1">
-              <li><a href="pecas_list.php" class="menu-item">Peças</a></li>
               <li><a href="produtos_list.php" class="menu-item">Produtos</a></li>
+              <li><a href="marcas_list.php" class="menu-item">Marcas</a></li>
               <li><a href="categorias_list.php" class="menu-item">Categorias</a></li>
               <li><a href="tipo_produtos_list.php" class="menu-item">Tipo de Produtos</a></li>
             </ul>

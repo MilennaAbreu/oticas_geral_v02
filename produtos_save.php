@@ -6,7 +6,7 @@ $id             = $_POST['id'] ?? null;
 $nome           = $_POST['nome'] ?? '';
 $id_tipo        = $_POST['id_tipo'] ?: null;
 $id_categoria   = $_POST['id_categoria'] ?: null;
-$marca          = $_POST['marca'] ?? null;
+$id_marca       = $_POST['id_marca'] ?: null;
 $codigo         = $_POST['codigo'] ?? null;
 $unidade        = $_POST['unidade_medida'] ?? 'UN';
 $valor_unitario = str_replace(',', '.', $_POST['valor_unitario'] ?? '0');
@@ -28,11 +28,11 @@ if($id){
         $stmt->execute([$id]);
         $imagem = $stmt->fetchColumn();
     }
-    $sql = "UPDATE PRODUTO SET NOME=?, ID_TIPO=?, ID_CATEGORIA=?, MARCA=?, CODIGO=?, UNIDADE_MEDIDA=?, VALOR_UNITARIO=?, ESTOQUE_ATUAL=?, STATUS=?, IMAGEM=? WHERE ID=?";
-    $pdo->prepare($sql)->execute([$nome,$id_tipo,$id_categoria,$marca,$codigo,$unidade,$valor_unitario,$estoque,$status,$imagem,$id]);
+    $sql = "UPDATE PRODUTO SET NOME=?, ID_TIPO=?, ID_CATEGORIA=?, ID_MARCA=?, CODIGO=?, UNIDADE_MEDIDA=?, VALOR_UNITARIO=?, ESTOQUE_ATUAL=?, STATUS=?, IMAGEM=? WHERE ID=?";
+    $pdo->prepare($sql)->execute([$nome,$id_tipo,$id_categoria,$id_marca,$codigo,$unidade,$valor_unitario,$estoque,$status,$imagem,$id]);
 } else {
-    $sql = "INSERT INTO PRODUTO (NOME, ID_TIPO, ID_CATEGORIA, MARCA, CODIGO, UNIDADE_MEDIDA, VALOR_UNITARIO, ESTOQUE_ATUAL, STATUS, IMAGEM) VALUES (?,?,?,?,?,?,?,?,?,?)";
-    $pdo->prepare($sql)->execute([$nome,$id_tipo,$id_categoria,$marca,$codigo,$unidade,$valor_unitario,$estoque,$status,$imagem]);
+    $sql = "INSERT INTO PRODUTO (NOME, ID_TIPO, ID_CATEGORIA, ID_MARCA, CODIGO, UNIDADE_MEDIDA, VALOR_UNITARIO, ESTOQUE_ATUAL, STATUS, IMAGEM) VALUES (?,?,?,?,?,?,?,?,?,?)";
+    $pdo->prepare($sql)->execute([$nome,$id_tipo,$id_categoria,$id_marca,$codigo,$unidade,$valor_unitario,$estoque,$status,$imagem]);
 }
 
 header('Location: produtos_list.php');
