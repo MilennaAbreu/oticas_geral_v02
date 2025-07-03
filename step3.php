@@ -60,12 +60,12 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         if($val!==false) $juros = (float)$val;
     }
 
-    $valorTotal = $valorVenda - $valorDescItens - $descontoGeral + $freteValor;
-    $valorLiquido = $valorTotal + ($valorTotal * $juros/100);
+    $valorBase = $valorVenda - $valorDescItens - $descontoGeral + $freteValor;
+    $valorTotal = $valorBase + ($valorBase * $juros/100);
 
     $pdo->beginTransaction();
     try {
-        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_LIQUIDO,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         $pdo->prepare($sql)->execute([
             $_SESSION['venda']['ID_CLIENTE'],
             $_SESSION['venda']['ID_USUARIO'],
@@ -73,7 +73,6 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $idMet,
             $juros,
             $valorVenda,
-            $valorLiquido,
             $valorTotal,
             $idFrete,
             $dataEntrega,
@@ -140,8 +139,8 @@ if($idMet && $idCond){
         }
     }catch(Exception $e){ $juros=0; }
 }
-$valorTotal = $valorVenda - $valorDescItens - (float)$descontoGeral + $freteValor;
-$valorLiquidoCalc = $valorTotal + ($valorTotal * $juros/100);
+$valorBase = $valorVenda - $valorDescItens - (float)$descontoGeral + $freteValor;
+$valorLiquidoCalc = $valorBase + ($valorBase * $juros/100);
 
 $pageTitle = 'Pagamento';
 include 'header.php';
@@ -222,7 +221,7 @@ include 'header.php';
       <p>Desconto Geral: R$ <span id="vDescGeral"><?= number_format($descontoGeral,2,',','.') ?></span></p>
       <p>Frete: R$ <span id="vFrete"><?= number_format($freteValor,2,',','.') ?></span></p>
       <p>Juros (%): <span id="vJuros"><?= number_format($juros,2,',','.') ?></span></p>
-      <p>Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
+      <p>Valor Total: R$ <span id="vTotal"><?= number_format($valorBase,2,',','.') ?></span></p>
       <p>Valor Líquido: R$ <span id="vLiquido"><?= number_format($valorLiquidoCalc,2,',','.') ?></span></p>
     </div>
     <div class="md:col-span-2">
