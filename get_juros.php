@@ -6,15 +6,20 @@ $cond = $_GET['cond'] ?? 0;
 $juros = 0;
 $parcelas = 1;
 if($met && $cond){
-    $st = $pdo->prepare("SELECT PARCELAS FROM CONDICAO_PAGAMENTO WHERE ID=?");
-    $st->execute([$cond]);
-    $parcelas = (int)($st->fetchColumn() ?: 1);
-
-    $st = $pdo->prepare("SELECT JUROS_MENSAL FROM JUROS_METODO_CONDICAO WHERE ID_METODO_PAGAMENTO=?");
-    $st->execute([$met]);
-    $jurosMes = (float)($st->fetchColumn() ?: 0);
-
-    $juros = $jurosMes * $parcelas;
+    $st = $pdo->prepare(
+        "SELECT c.PARCELAS, j.JUROS_MENSAL
+           FROM CONDICAO_PAGAMENTO c
+           LEFT JOIN JUROS_METODO_CONDICAO j
+             ON j.ID_CONDICAO = c.ID
+            AND j.ID_METODO_PAGAMENTO = ?
+          WHERE c.ID = ?"
+    );
+    $st->execute([$met, $cond]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if($row){
+        $parcelas = (int)$row['PARCELAS'];
+        $juros = (float)$row['JUROS_MENSAL'] * $parcelas;
+    }
 }
 header('Content-Type: application/json');
 echo json_encode(['juros'=>$juros,'parcelas'=>$parcelas]);

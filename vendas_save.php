@@ -9,6 +9,10 @@ $id_condicao = $_POST['id_condicao_pagamento'] ?? null;
 $id_metodo   = $_POST['id_metodo_pagamento'] ?? null;
 $id_frete    = $_POST['id_frete'] ?? null;
 $data_entrega = $_POST['data_entrega'] ?: null;
+$data_vencimento = trim($_POST['data_vencimento'] ?? '');
+if(!$data_vencimento){
+    $data_vencimento = date('Y-m-d');
+}
 $valor_venda = str_replace(',', '.', $_POST['valor_venda'] ?? '0');
 $desconto    = str_replace(',', '.', $_POST['desconto'] ?? '0');
 $valor_total = str_replace(',', '.', $_POST['valor_total'] ?? '0');
@@ -24,15 +28,23 @@ $id_empresa  = $_POST['id_empresa'] ?? null;
 
 // busca juros aplicado conforme metodo e condicao
 $parcelas = 1;
-$st = $pdo->prepare("SELECT PARCELAS FROM CONDICAO_PAGAMENTO WHERE ID=?");
-$st->execute([$id_condicao]);
-$parcelas = (int)($st->fetchColumn() ?: 1);
-
-$st = $pdo->prepare("SELECT JUROS_MENSAL FROM JUROS_METODO_CONDICAO WHERE ID_METODO_PAGAMENTO=?");
-$st->execute([$id_metodo]);
-$jurosMes = (float)($st->fetchColumn() ?: 0);
-
-$juros_aplicado = $jurosMes * $parcelas;
+$juros_aplicado = 0;
+if($id_metodo && $id_condicao){
+    $st = $pdo->prepare(
+        "SELECT c.PARCELAS, j.JUROS_MENSAL
+           FROM CONDICAO_PAGAMENTO c
+           LEFT JOIN JUROS_METODO_CONDICAO j
+             ON j.ID_CONDICAO = c.ID
+            AND j.ID_METODO_PAGAMENTO = ?
+          WHERE c.ID = ?"
+    );
+    $st->execute([$id_metodo, $id_condicao]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if($row){
+        $parcelas = (int)$row['PARCELAS'];
+        $juros_aplicado = (float)$row['JUROS_MENSAL'] * $parcelas;
+    }
+}
 
 $valor_liquido = $valor_total * (1 - $juros_aplicado/100);
 
@@ -61,7 +73,7 @@ if($id){
     $valorParcela = $parcelas ? $valor_liquido / $parcelas : $valor_liquido;
     $stmtCR = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, PARCELA, VALOR, DATA_VENCIMENTO) VALUES (?,?,?,?)");
     for($p=1;$p<=($parcelas?:1);$p++){
-        $venc = date('Y-m-d', strtotime("+".($p-1)." month"));
+        $venc = date('Y-m-d', strtotime($data_vencimento." +".($p-1)." month"));
         $stmtCR->execute([$id,$p,$valorParcela,$venc]);
     }
 }

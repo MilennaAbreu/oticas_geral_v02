@@ -25,7 +25,10 @@ $ruaEntrega    = $_POST['rua_entrega'] ?? $cliente['RUA'];
 $bairroEntrega = $_POST['bairro_entrega'] ?? $cliente['BAIRRO'];
 $idCidade      = $_POST['id_cidade'] ?? $cliente['ID_CIDADE'];
 $descGeral     = str_replace(',', '.', $_POST['desconto_geral'] ?? '0');
-$dataVenc      = $_POST['data_vencimento'] ?? date('Y-m-d');
+$dataVenc      = trim($_POST['data_vencimento'] ?? '');
+if(!$dataVenc){
+    $dataVenc = date('Y-m-d');
+}
 
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $idFrete = $idFrete ?: null;
@@ -49,15 +52,20 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $juros = 0;
     $parcelas = 1;
     if($idMet && $idCond){
-        $st = $pdo->prepare("SELECT PARCELAS FROM CONDICAO_PAGAMENTO WHERE ID=?");
-        $st->execute([$idCond]);
-        $parcelas = (int)($st->fetchColumn() ?: 1);
-
-        $st = $pdo->prepare("SELECT JUROS_MENSAL FROM JUROS_METODO_CONDICAO WHERE ID_METODO_PAGAMENTO=?");
-        $st->execute([$idMet]);
-        $jurosMes = (float)($st->fetchColumn() ?: 0);
-
-        $juros = $jurosMes * $parcelas;
+        $st = $pdo->prepare(
+            "SELECT c.PARCELAS, j.JUROS_MENSAL
+               FROM CONDICAO_PAGAMENTO c
+               LEFT JOIN JUROS_METODO_CONDICAO j
+                 ON j.ID_CONDICAO = c.ID
+                AND j.ID_METODO_PAGAMENTO = ?
+              WHERE c.ID = ?"
+        );
+        $st->execute([$idMet, $idCond]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if($row){
+            $parcelas = (int)$row['PARCELAS'];
+            $juros = (float)$row['JUROS_MENSAL'] * $parcelas;
+        }
     }
 
     $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
@@ -162,15 +170,20 @@ if($idFrete){
 }
 $juros = 0;
 if($idMet && $idCond){
-    $st = $pdo->prepare("SELECT PARCELAS FROM CONDICAO_PAGAMENTO WHERE ID=?");
-    $st->execute([$idCond]);
-    $parc = (int)($st->fetchColumn() ?: 1);
-
-    $st = $pdo->prepare("SELECT JUROS_MENSAL FROM JUROS_METODO_CONDICAO WHERE ID_METODO_PAGAMENTO=?");
-    $st->execute([$idMet]);
-    $jMes = (float)($st->fetchColumn() ?: 0);
-
-    $juros = $jMes * $parc;
+    $st = $pdo->prepare(
+        "SELECT c.PARCELAS, j.JUROS_MENSAL
+           FROM CONDICAO_PAGAMENTO c
+           LEFT JOIN JUROS_METODO_CONDICAO j
+             ON j.ID_CONDICAO = c.ID
+            AND j.ID_METODO_PAGAMENTO = ?
+          WHERE c.ID = ?"
+    );
+    $st->execute([$idMet, $idCond]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if($row){
+        $parc = (int)$row['PARCELAS'];
+        $juros = (float)$row['JUROS_MENSAL'] * $parc;
+    }
 }
 $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
 $valorLiquidoCalc = $valorTotal * (1 - $juros/100);
