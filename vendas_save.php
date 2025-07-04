@@ -23,18 +23,16 @@ $status      = $_POST['status'] ?? 'PENDENTE';
 $id_empresa  = $_POST['id_empresa'] ?? null;
 
 // busca juros aplicado conforme metodo e condicao
-$juros_aplicado = 0.00;
-$sql = "SELECT c.PARCELAS, j.JUROS_MENSAL
-          FROM CONDICAO_PAGAMENTO c
-          JOIN JUROS_METODO_CONDICAO j
-            ON j.ID_CONDICAO = c.ID
-           AND j.ID_METODO_PAGAMENTO = ?
-         WHERE c.ID = ?";
-$st = $pdo->prepare($sql);
-$st->execute([$id_metodo, $id_condicao]);
-if($row = $st->fetch(PDO::FETCH_ASSOC)){
-    $juros_aplicado = (float)$row['JUROS_MENSAL'] * (int)$row['PARCELAS'];
-}
+$parcelas = 1;
+$st = $pdo->prepare("SELECT PARCELAS FROM CONDICAO_PAGAMENTO WHERE ID=?");
+$st->execute([$id_condicao]);
+$parcelas = (int)($st->fetchColumn() ?: 1);
+
+$st = $pdo->prepare("SELECT JUROS_MENSAL FROM JUROS_METODO_CONDICAO WHERE ID_METODO_PAGAMENTO=?");
+$st->execute([$id_metodo]);
+$jurosMes = (float)($st->fetchColumn() ?: 0);
+
+$juros_aplicado = $jurosMes * $parcelas;
 
 $valor_liquido = $valor_total * (1 - $juros_aplicado/100);
 
@@ -59,6 +57,13 @@ if($id){
     }
     $pdo->prepare($sql)->execute($params);
     $id = $pdo->lastInsertId();
+    // gera contas a receber quando nova venda inserida
+    $valorParcela = $parcelas ? $valor_liquido / $parcelas : $valor_liquido;
+    $stmtCR = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, PARCELA, VALOR, DATA_VENCIMENTO) VALUES (?,?,?,?)");
+    for($p=1;$p<=($parcelas?:1);$p++){
+        $venc = date('Y-m-d', strtotime("+".($p-1)." month"));
+        $stmtCR->execute([$id,$p,$valorParcela,$venc]);
+    }
 }
 
 header('Location: vendas_list.php');
