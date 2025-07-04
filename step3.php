@@ -99,7 +99,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         ]);
         $vals = array_merge($vals,[
             $idFrete,$dataEntrega,$descGeral,$telContato,$respContato,$cepEntrega,$ruaEntrega,
-            $bairroEntrega,$idCidade,null,'PENDENTE',$_SESSION['venda']['ID_EMPRESA']
+            $bairroEntrega,$idCidade,null,'CONCLUÍDA',$_SESSION['venda']['ID_EMPRESA']
         ]);
         $place = implode(',', array_fill(0,count($cols),'?'));
         $sql = "INSERT INTO VENDAS (".implode(',', $cols).") VALUES ($place)";
@@ -111,21 +111,6 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $stmtItem = $pdo->prepare("INSERT INTO ITENS_VENDA (ID_VENDA,ID_PRODUTO,QUANTIDADE,VALOR_UNITARIO,DESCONTO) VALUES (?,?,?,?,?)");
         foreach($itens as $it){
             $stmtItem->execute([$idVenda,$it['ID_PRODUTO'],$it['QUANTIDADE'],$it['VALOR_UNITARIO'],$it['DESCONTO']]);
-        }
-        // gera contas a receber rateadas conforme parcelas
-        $valorParcela = $parcelas ? $valorLiquidoCalc / $parcelas : $valorLiquidoCalc;
-        $stmtCR = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
-        for($p=1; $p<=($parcelas ?: 1); $p++){
-            $ts = strtotime($dataVenc . ' +' . ($p-1) . ' month');
-            $venc = $ts ? date('Y-m-d', $ts) : $dataVenc;
-            $stmtCR->execute([
-                $idVenda,
-                $_SESSION['venda']['ID_CLIENTE'],
-                $valorParcela,
-                $venc,
-                'PENDENTE',
-                $_SESSION['venda']['ID_EMPRESA']
-            ]);
         }
         $pdo->commit();
         unset($_SESSION['venda']);
@@ -259,7 +244,7 @@ include 'header.php';
       <p>Desconto Itens: R$ <span id="vDescItens"><?= number_format($valorDescItens,2,',','.') ?></span></p>
       <p>Desconto Geral: R$ <span id="vDescGeral"><?= number_format($descGeral,2,',','.') ?></span></p>
       <p>Frete: R$ <span id="vFrete"><?= number_format($freteValor,2,',','.') ?></span></p>
-      <p>Juros (%): <span id="vJuros"><?= number_format($juros,2,',','.') ?></span></p>
+      <span id="vJuros" class="hidden"><?= number_format($juros,2,',','.') ?></span>
       <p>Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
       <p>Valor Líquido: R$ <span id="vLiquido"><?= number_format($valorLiquidoCalc,2,',','.') ?></span></p>
     </div>

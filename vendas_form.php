@@ -47,6 +47,8 @@ if(!hasRole('ADMINISTRADOR','DIRETORIA') && $empresaIds){
     $empresas = $pdo->query("SELECT ID, NOME FROM EMPRESA ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 }
 
+$disableVendedor = $id && !hasRole('ADMINISTRADOR','DIRETORIA');
+
 $pageTitle = $id ? 'Editar Venda' : 'Nova Venda';
 include 'header.php';
 ?>
@@ -68,12 +70,15 @@ include 'header.php';
     </div>
     <div>
       <label class="block mb-1">Vendedor</label>
-      <select name="id_usuario" class="border p-2 w-full rounded" required>
+      <select name="id_usuario" class="border p-2 w-full rounded" required <?= $disableVendedor?'disabled':'' ?>>
         <option value="">Selecione</option>
         <?php foreach($usuarios as $u): ?>
           <option value="<?= $u['ID'] ?>" <?= $sale['ID_USUARIO']==$u['ID']?'selected':'' ?>><?= htmlspecialchars($u['NOME']) ?></option>
         <?php endforeach; ?>
       </select>
+      <?php if($disableVendedor): ?>
+        <input type="hidden" name="id_usuario" value="<?= $sale['ID_USUARIO'] ?>">
+      <?php endif; ?>
     </div>
     <div>
       <label class="block mb-1">Condição Pagamento</label>

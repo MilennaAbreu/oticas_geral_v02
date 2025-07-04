@@ -75,21 +75,6 @@ if($id){
     $sql="INSERT INTO VENDAS (".implode(',', $cols).") VALUES ($place)";
     $pdo->prepare($sql)->execute($vals);
     $id=$pdo->lastInsertId();
-    $valorParcela=$parcelas? $valor_liquido/$parcelas:$valor_liquido;
-    $stmtCR=$pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
-    for($p=1;$p<=($parcelas ?: 1);$p++){
-        $ts=strtotime($data_vencimento.' +'.($p-1).' month');
-        $venc=$ts?date('Y-m-d',$ts):$data_vencimento;
-        $stmtCR->execute([
-            $id,
-            $id_cliente,
-            $valorParcela,
-            $venc,
-            'PENDENTE',
-            $id_empresa
-        ]);
-    }
-}
 }
 
 header('Location: vendas_list.php');
