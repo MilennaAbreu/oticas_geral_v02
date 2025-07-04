@@ -5,13 +5,29 @@
       document.addEventListener('DOMContentLoaded', function() {
         var sidebar = document.getElementById('sidebar');
         var toggleBtn = document.getElementById('toggleBtn');
+
         toggleBtn.addEventListener('click', function(e) {
           e.stopPropagation();
           sidebar.classList.toggle('expanded');
         });
+
+        // Open sidebar on first click when collapsed
+        sidebar.querySelectorAll('.menu-item').forEach(function(mi) {
+          mi.addEventListener('click', function(e) {
+            if (!sidebar.classList.contains('expanded')) {
+              e.preventDefault();
+              sidebar.classList.add('expanded');
+            }
+          });
+        });
+
         document.querySelectorAll('.has-submenu > .menu-item').forEach(function(item) {
           item.addEventListener('click', function(e) {
             e.stopPropagation();
+            if (!sidebar.classList.contains('expanded')) {
+              sidebar.classList.add('expanded');
+              return;
+            }
             this.parentElement.classList.toggle('expanded');
           });
         });
