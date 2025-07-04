@@ -35,7 +35,8 @@ $canDelete = hasRole('ADMINISTRADOR');
       <td class="border-t px-4 py-2"><?= htmlspecialchars($v['CLIENTE']) ?></td>
       <td class="border-t px-4 py-2">R$ <?= number_format($v['VALOR_TOTAL'],2,',','.') ?></td>
       <td class="border-t px-4 py-2">
-        <select onchange="updateStatus(this, <?= $v['ID'] ?>)" class="border p-1 rounded status-select bg-opacity-20">
+        <div class="flex items-center gap-1">
+        <select id="status_<?= $v['ID'] ?>" onchange="setColor(this)" class="border p-1 rounded status-select bg-opacity-20">
           <?php
             $statuses = ['CONCLUÍDA'=>'bg-green-100 text-green-800','CANCELADA'=>'bg-red-100 text-red-800','COTAÇÃO'=>'bg-blue-100 text-blue-800','PENDENTE'=>'bg-yellow-100 text-yellow-800'];
             foreach($statuses as $st=>$class){
@@ -44,6 +45,8 @@ $canDelete = hasRole('ADMINISTRADOR');
             }
           ?>
         </select>
+        <button onclick="saveStatus(<?= $v['ID'] ?>)" class="text-green-700 hover:text-green-900"><i class="fas fa-check"></i></button>
+        </div>
       </td>
       <td class="table-actions">
         <a href="vendas_form.php?id=<?= $v['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
@@ -56,13 +59,17 @@ $canDelete = hasRole('ADMINISTRADOR');
   </tbody>
 </table>
 <script>
-function updateStatus(sel,id){
+function saveStatus(id){
+  const sel = document.getElementById('status_'+id);
   fetch('vendas_update_status.php',{
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body:`id=${id}&status=${encodeURIComponent(sel.value)}`
-  }).then(()=>{
+  })
+  .then(r => r.text())
+  .then(()=>{
     setColor(sel);
+    alert('Status atualizado com sucesso');
   });
 }
 function setColor(sel){
