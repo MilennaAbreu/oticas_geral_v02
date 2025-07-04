@@ -49,33 +49,39 @@ if($id_metodo && $id_condicao){
 $valor_liquido = $valor_total * (1 - $juros_aplicado/100);
 
 $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
+$hasVencParc = columnExists($pdo,"VENDAS","DATA_VENCIMENTO_PARCELA");
+$hasParcelas = columnExists($pdo,"VENDAS","NUMERO_PARCELAS");
+$hasFormaPag = columnExists($pdo,"VENDAS","FORMA_PAGAMENTO");
+
+// monta dinamicamente colunas e valores
+$cols=['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO','ID_METODO_PAGAMENTO','JUROS_APLICADO'];
+$vals=[$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado];
+if($hasParcelas){$cols[]='NUMERO_PARCELAS';$vals[]=$parcelas;}
+if($hasVencParc){$cols[]='DATA_VENCIMENTO_PARCELA';$vals[]=$data_vencimento;}
+if($hasFormaPag){$cols[]='FORMA_PAGAMENTO';$vals[]=$parcelas>1?'PARCELADO':'À VISTA';}
+$cols=array_merge($cols,['VALOR_VENDA','VALOR_TOTAL']);
+$vals=array_merge($vals,[$valor_venda,$valor_total]);
+if($hasLiquido){$cols[]='VALOR_LIQUIDO';$vals[]=$valor_liquido;}
+$cols=array_merge($cols,['ID_FRETE','DATA_ENTREGA','DESCONTO','TELEFONE_CONTATO','RESPONSAVEL_CONTATO','CEP_ENTREGA','RUA_ENTREGA','BAIRRO_ENTREGA','ID_CIDADE','OBSERVACAO','STATUS','ID_EMPRESA']);
+$vals=array_merge($vals,[$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa]);
 
 if($id){
-    if($hasLiquido){
-        $sql = "UPDATE VENDAS SET ID_CLIENTE=?, ID_USUARIO=?, ID_CONDICAO_PAGAMENTO=?, ID_METODO_PAGAMENTO=?, JUROS_APLICADO=?, VALOR_VENDA=?, VALOR_TOTAL=?, VALOR_LIQUIDO=?, ID_FRETE=?, DATA_ENTREGA=?, DESCONTO=?, TELEFONE_CONTATO=?, RESPONSAVEL_CONTATO=?, CEP_ENTREGA=?, RUA_ENTREGA=?, BAIRRO_ENTREGA=?, ID_CIDADE=?, OBSERVACAO=?, STATUS=?, ID_EMPRESA=? WHERE ID=?";
-        $params = [$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$valor_liquido,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa,$id];
-    } else {
-        $sql = "UPDATE VENDAS SET ID_CLIENTE=?, ID_USUARIO=?, ID_CONDICAO_PAGAMENTO=?, ID_METODO_PAGAMENTO=?, JUROS_APLICADO=?, VALOR_VENDA=?, VALOR_TOTAL=?, ID_FRETE=?, DATA_ENTREGA=?, DESCONTO=?, TELEFONE_CONTATO=?, RESPONSAVEL_CONTATO=?, CEP_ENTREGA=?, RUA_ENTREGA=?, BAIRRO_ENTREGA=?, ID_CIDADE=?, OBSERVACAO=?, STATUS=?, ID_EMPRESA=? WHERE ID=?";
-        $params = [$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa,$id];
-    }
-    $pdo->prepare($sql)->execute($params);
-} else {
-    if($hasLiquido){
-        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,VALOR_LIQUIDO,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-        $params = [$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$valor_liquido,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa];
-    } else {
-        $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-        $params = [$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado,$valor_venda,$valor_total,$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa];
-    }
-    $pdo->prepare($sql)->execute($params);
-    $id = $pdo->lastInsertId();
-    // gera contas a receber quando nova venda inserida
-    $valorParcela = $parcelas ? $valor_liquido / $parcelas : $valor_liquido;
-    $stmtCR = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, PARCELA, VALOR, DATA_VENCIMENTO) VALUES (?,?,?,?)");
+    $set=implode('=?, ',$cols).'=?';
+    $vals[]=$id;
+    $sql="UPDATE VENDAS SET $set WHERE ID=?";
+    $pdo->prepare($sql)->execute($vals);
+}else{
+    $place=implode(',',array_fill(0,count($cols),'?'));
+    $sql="INSERT INTO VENDAS (".implode(',', $cols).") VALUES ($place)";
+    $pdo->prepare($sql)->execute($vals);
+    $id=$pdo->lastInsertId();
+    $valorParcela=$parcelas? $valor_liquido/$parcelas:$valor_liquido;
+    $stmtCR=$pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, PARCELA, VALOR, DATA_VENCIMENTO) VALUES (?,?,?,?)");
     for($p=1;$p<=($parcelas?:1);$p++){
-        $venc = date('Y-m-d', strtotime($data_vencimento." +".($p-1)." month"));
+        $venc=date('Y-m-d',strtotime($data_vencimento." +".($p-1)." month"));
         $stmtCR->execute([$id,$p,$valorParcela,$venc]);
     }
+}
 }
 
 header('Location: vendas_list.php');
