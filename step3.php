@@ -73,56 +73,37 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
 
     $pdo->beginTransaction();
     try {
-        $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
-        if($hasLiquido){
-            $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,VALOR_LIQUIDO,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            $params = [
-                $_SESSION['venda']['ID_CLIENTE'],
-                $_SESSION['venda']['ID_USUARIO'],
-                $idCond,
-                $idMet,
-                $juros,
-                $valorVenda,
-                $valorTotal,
-                $valorLiquidoCalc,
-                $idFrete,
-                $dataEntrega,
-                $descGeral,
-                $telContato,
-                $respContato,
-                $cepEntrega,
-                $ruaEntrega,
-                $bairroEntrega,
-                $idCidade,
-                null,
-                'PENDENTE',
-                $_SESSION['venda']['ID_EMPRESA']
-            ];
-        } else {
-            $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            $params = [
-                $_SESSION['venda']['ID_CLIENTE'],
-                $_SESSION['venda']['ID_USUARIO'],
-                $idCond,
-                $idMet,
-                $juros,
-                $valorVenda,
-                $valorTotal,
-                $idFrete,
-                $dataEntrega,
-                $descGeral,
-                $telContato,
-                $respContato,
-                $cepEntrega,
-                $ruaEntrega,
-                $bairroEntrega,
-                $idCidade,
-                null,
-                'PENDENTE',
-                $_SESSION['venda']['ID_EMPRESA']
-            ];
-        }
-        $pdo->prepare($sql)->execute($params);
+        $hasLiquido  = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
+        $hasParc     = columnExists($pdo,'VENDAS','NUMERO_PARCELAS');
+        $hasVenc     = columnExists($pdo,'VENDAS','DATA_VENCIMENTO_PARCELA');
+        $hasForma    = columnExists($pdo,'VENDAS','FORMA_PAGAMENTO');
+        $cols = [
+            'ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO','ID_METODO_PAGAMENTO','JUROS_APLICADO'
+        ];
+        $vals = [
+            $_SESSION['venda']['ID_CLIENTE'],
+            $_SESSION['venda']['ID_USUARIO'],
+            $idCond,
+            $idMet,
+            $juros
+        ];
+        if($hasParc){ $cols[]='NUMERO_PARCELAS'; $vals[]=$parcelas; }
+        if($hasVenc){ $cols[]='DATA_VENCIMENTO_PARCELA'; $vals[]=$dataVenc; }
+        if($hasForma){ $cols[]='FORMA_PAGAMENTO'; $vals[]=$parcelas>1?'PARCELADO':'À VISTA'; }
+        $cols = array_merge($cols,['VALOR_VENDA','VALOR_TOTAL']);
+        $vals = array_merge($vals,[$valorVenda,$valorTotal]);
+        if($hasLiquido){ $cols[]='VALOR_LIQUIDO'; $vals[]=$valorLiquidoCalc; }
+        $cols = array_merge($cols,[
+            'ID_FRETE','DATA_ENTREGA','DESCONTO','TELEFONE_CONTATO','RESPONSAVEL_CONTATO',
+            'CEP_ENTREGA','RUA_ENTREGA','BAIRRO_ENTREGA','ID_CIDADE','OBSERVACAO','STATUS','ID_EMPRESA'
+        ]);
+        $vals = array_merge($vals,[
+            $idFrete,$dataEntrega,$descGeral,$telContato,$respContato,$cepEntrega,$ruaEntrega,
+            $bairroEntrega,$idCidade,null,'PENDENTE',$_SESSION['venda']['ID_EMPRESA']
+        ]);
+        $place = implode(',', array_fill(0,count($cols),'?'));
+        $sql = "INSERT INTO VENDAS (".implode(',', $cols).") VALUES ($place)";
+        $pdo->prepare($sql)->execute($vals);
         $idVenda = $pdo->lastInsertId();
         if(!$idVenda){
             throw new Exception('falha ao inserir venda');
@@ -133,11 +114,18 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         }
         // gera contas a receber rateadas conforme parcelas
         $valorParcela = $parcelas ? $valorLiquidoCalc / $parcelas : $valorLiquidoCalc;
-        $stmtCR = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, PARCELA, VALOR, DATA_VENCIMENTO) VALUES (?,?,?,?)");
+        $stmtCR = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
         for($p=1; $p<=($parcelas ?: 1); $p++){
-            $ts = strtotime($dataVenc . " +" . ($p-1) . " month");
+            $ts = strtotime($dataVenc . ' +' . ($p-1) . ' month');
             $venc = $ts ? date('Y-m-d', $ts) : $dataVenc;
-            $stmtCR->execute([$idVenda, $p, $valorParcela, $venc]);
+            $stmtCR->execute([
+                $idVenda,
+                $_SESSION['venda']['ID_CLIENTE'],
+                $valorParcela,
+                $venc,
+                'PENDENTE',
+                $_SESSION['venda']['ID_EMPRESA']
+            ]);
         }
         $pdo->commit();
         unset($_SESSION['venda']);
