@@ -24,6 +24,8 @@ $cepEntrega    = $_POST['cep_entrega'] ?? $cliente['CEP'];
 $ruaEntrega    = $_POST['rua_entrega'] ?? $cliente['RUA'];
 $bairroEntrega = $_POST['bairro_entrega'] ?? $cliente['BAIRRO'];
 $idCidade      = $_POST['id_cidade'] ?? $cliente['ID_CIDADE'];
+$descGeral     = str_replace(',', '.', $_POST['desconto_geral'] ?? '0');
+$dataVenc      = $_POST['data_vencimento'] ?? date('Y-m-d');
 
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $idFrete = $idFrete ?: null;
@@ -58,7 +60,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $juros = $jurosMes * $parcelas;
     }
 
-    $valorTotal = $valorVenda - $valorDescItens;
+    $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
     $valorLiquidoCalc = $valorTotal * (1 - $juros/100);
 
     $pdo->beginTransaction();
@@ -77,7 +79,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
                 $valorLiquidoCalc,
                 $idFrete,
                 $dataEntrega,
-                $valorDescItens,
+                $descGeral,
                 $telContato,
                 $respContato,
                 $cepEntrega,
@@ -89,7 +91,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
                 $_SESSION['venda']['ID_EMPRESA']
             ];
         } else {
-            $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            $sql = "INSERT INTO VENDAS (ID_CLIENTE,ID_USUARIO,ID_CONDICAO_PAGAMENTO,ID_METODO_PAGAMENTO,JUROS_APLICADO,VALOR_VENDA,VALOR_TOTAL,ID_FRETE,DATA_ENTREGA,DESCONTO,TELEFONE_CONTATO,RESPONSAVEL_CONTATO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,OBSERVACAO,STATUS,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $params = [
                 $_SESSION['venda']['ID_CLIENTE'],
                 $_SESSION['venda']['ID_USUARIO'],
@@ -100,7 +102,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
                 $valorTotal,
                 $idFrete,
                 $dataEntrega,
-                $valorDescItens,
+                $descGeral,
                 $telContato,
                 $respContato,
                 $cepEntrega,
@@ -125,7 +127,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $valorParcela = $parcelas ? $valorLiquidoCalc / $parcelas : $valorLiquidoCalc;
         $stmtCR = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, PARCELA, VALOR, DATA_VENCIMENTO) VALUES (?,?,?,?)");
         for($p=1; $p<=($parcelas?:1); $p++){
-            $venc = date('Y-m-d', strtotime("+".($p-1)." month"));
+            $venc = date('Y-m-d', strtotime($dataVenc." +".($p-1)." month"));
             $stmtCR->execute([$idVenda,$p,$valorParcela,$venc]);
         }
         $pdo->commit();
@@ -170,7 +172,7 @@ if($idMet && $idCond){
 
     $juros = $jMes * $parc;
 }
-$valorTotal = $valorVenda - $valorDescItens;
+$valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
 $valorLiquidoCalc = $valorTotal * (1 - $juros/100);
 
 $pageTitle = 'Pagamento';
@@ -242,9 +244,18 @@ include 'header.php';
         <?php endforeach; ?>
       </select>
     </div>
+    <div>
+      <label class="block mb-1">Data Vencimento 1ª Parcela</label>
+      <input type="date" name="data_vencimento" value="<?= htmlspecialchars($dataVenc) ?>" class="border p-2 w-full rounded">
+    </div>
+    <div>
+      <label class="block mb-1">Desconto Geral</label>
+      <input type="text" name="desconto_geral" value="<?= htmlspecialchars($descGeral) ?>" class="border p-2 w-full rounded" oninput="calcTot()">
+    </div>
     <div class="md:col-span-2">
       <p>Valor Bruto: R$ <span id="vVenda"><?= number_format($valorVenda,2,',','.') ?></span></p>
-      <p>Desconto Geral: R$ <span id="vDescGeral"><?= number_format($valorDescItens,2,',','.') ?></span></p>
+      <p>Desconto Itens: R$ <span id="vDescItens"><?= number_format($valorDescItens,2,',','.') ?></span></p>
+      <p>Desconto Geral: R$ <span id="vDescGeral"><?= number_format($descGeral,2,',','.') ?></span></p>
       <p>Frete: R$ <span id="vFrete"><?= number_format($freteValor,2,',','.') ?></span></p>
       <p>Juros (%): <span id="vJuros"><?= number_format($juros,2,',','.') ?></span></p>
       <p>Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
@@ -267,18 +278,22 @@ function fetchJuros(){
 }
 function calcTot(){
   const bruto=parseFloat(document.getElementById('vVenda').textContent.replace(',','.'))||0;
-  const descGeral=parseFloat(document.getElementById('vDescGeral').textContent.replace(',', '.'))||0;
+  const descItens=parseFloat(document.getElementById('vDescItens').textContent.replace(',', '.'))||0;
+  const input=document.querySelector('[name=desconto_geral]');
+  const descGeral=parseFloat(input.value.replace(',', '.'))||0;
+  document.getElementById('vDescGeral').textContent=descGeral.toFixed(2);
   const freteSel=document.querySelector('[name=id_frete]');
   const frete=parseFloat(freteSel.selectedOptions[0].dataset.valor||0);
   const juros=parseFloat(document.getElementById('vJuros').textContent)||0;
   document.getElementById('vFrete').textContent=frete.toFixed(2);
-  let total=bruto-descGeral;
+  let total=bruto-descItens-descGeral+frete;
   document.getElementById('vTotal').textContent=total.toFixed(2);
   let liquido=total*(1-juros/100);
   document.getElementById('vLiquido').textContent=liquido.toFixed(2);
 }
 document.querySelector('[name=id_metodo_pagamento]').addEventListener('change',fetchJuros);
 document.querySelector('[name=id_condicao_pagamento]').addEventListener('change',fetchJuros);
+document.querySelector('[name=desconto_geral]').addEventListener('input',calcTot);
 document.addEventListener('DOMContentLoaded',fetchJuros);
 </script>
 <?php include 'footer.php'; ?>
