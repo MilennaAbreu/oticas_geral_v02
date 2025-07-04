@@ -10,7 +10,7 @@ $id_metodo   = $_POST['id_metodo_pagamento'] ?? null;
 $id_frete    = $_POST['id_frete'] ?? null;
 $data_entrega = $_POST['data_entrega'] ?: null;
 $data_vencimento = trim($_POST['data_vencimento'] ?? '');
-if(!$data_vencimento){
+if(empty($data_vencimento)){
     $data_vencimento = date('Y-m-d');
 }
 $valor_venda = str_replace(',', '.', $_POST['valor_venda'] ?? '0');
@@ -77,8 +77,9 @@ if($id){
     $id=$pdo->lastInsertId();
     $valorParcela=$parcelas? $valor_liquido/$parcelas:$valor_liquido;
     $stmtCR=$pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, PARCELA, VALOR, DATA_VENCIMENTO) VALUES (?,?,?,?)");
-    for($p=1;$p<=($parcelas?:1);$p++){
-        $venc=date('Y-m-d',strtotime($data_vencimento." +".($p-1)." month"));
+    for($p=1;$p<=($parcelas ?: 1);$p++){
+        $ts=strtotime($data_vencimento." +".($p-1)." month");
+        $venc=$ts?date('Y-m-d',$ts):$data_vencimento;
         $stmtCR->execute([$id,$p,$valorParcela,$venc]);
     }
 }

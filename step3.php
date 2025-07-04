@@ -26,7 +26,7 @@ $bairroEntrega = $_POST['bairro_entrega'] ?? $cliente['BAIRRO'];
 $idCidade      = $_POST['id_cidade'] ?? $cliente['ID_CIDADE'];
 $descGeral     = str_replace(',', '.', $_POST['desconto_geral'] ?? '0');
 $dataVenc      = trim($_POST['data_vencimento'] ?? '');
-if(!$dataVenc){
+if(empty($dataVenc)){
     $dataVenc = date('Y-m-d');
 }
 
@@ -134,9 +134,10 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         // gera contas a receber rateadas conforme parcelas
         $valorParcela = $parcelas ? $valorLiquidoCalc / $parcelas : $valorLiquidoCalc;
         $stmtCR = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, PARCELA, VALOR, DATA_VENCIMENTO) VALUES (?,?,?,?)");
-        for($p=1; $p<=($parcelas?:1); $p++){
-            $venc = date('Y-m-d', strtotime($dataVenc." +".($p-1)." month"));
-            $stmtCR->execute([$idVenda,$p,$valorParcela,$venc]);
+        for($p=1; $p<=($parcelas ?: 1); $p++){
+            $ts = strtotime($dataVenc . " +" . ($p-1) . " month");
+            $venc = $ts ? date('Y-m-d', $ts) : $dataVenc;
+            $stmtCR->execute([$idVenda, $p, $valorParcela, $venc]);
         }
         $pdo->commit();
         unset($_SESSION['venda']);
