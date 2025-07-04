@@ -99,7 +99,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         ]);
         $vals = array_merge($vals,[
             $idFrete,$dataEntrega,$descGeral,$telContato,$respContato,$cepEntrega,$ruaEntrega,
-            $bairroEntrega,$idCidade,null,'CONCLUÍDA',$_SESSION['venda']['ID_EMPRESA']
+            $bairroEntrega,$idCidade,null,'PENDENTE',$_SESSION['venda']['ID_EMPRESA']
         ]);
         $place = implode(',', array_fill(0,count($cols),'?'));
         $sql = "INSERT INTO VENDAS (".implode(',', $cols).") VALUES ($place)";
