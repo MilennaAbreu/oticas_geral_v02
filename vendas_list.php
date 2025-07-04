@@ -64,13 +64,18 @@ function saveStatus(id){
   fetch('vendas_update_status.php',{
     method:'POST',
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:`id=${id}&status=${encodeURIComponent(sel.value)}`
+    body:`id=${id}&status=${encodeURIComponent(sel.value)}`,
+    credentials:'same-origin'
   })
-  .then(r => r.text())
-  .then(()=>{
-    setColor(sel);
-    alert('Status atualizado com sucesso');
-  });
+  .then(r => r.json())
+  .then(data => {
+    if(data.success){
+      setColor(sel);
+      alert('Status atualizado com sucesso');
+    }else{
+      alert('Erro ao atualizar: '+(data.error||'unknown'));}
+  })
+  .catch(()=>alert('Falha na requisição'));
 }
 function setColor(sel){
   sel.classList.remove('bg-green-100','bg-red-100','bg-blue-100','bg-yellow-100','text-green-800','text-red-800','text-blue-800','text-yellow-800');
