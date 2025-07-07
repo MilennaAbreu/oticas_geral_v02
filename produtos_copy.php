@@ -31,15 +31,25 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     if($dest){
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?");
         $stmt->execute([$produto['CODIGO'],$dest]);
-        if(!$stmt->fetchColumn()){
-            $sql = "INSERT INTO PRODUTO (NOME,ID_TIPO,ID_CATEGORIA,ID_MARCA,CODIGO,UNIDADE_MEDIDA,VALOR_COMPRA,VALOR_UNITARIO,ESTOQUE_ATUAL,STATUS,IMAGEM,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-            $pdo->prepare($sql)->execute([
-                $produto['NOME'],$produto['ID_TIPO'],$produto['ID_CATEGORIA'],$produto['ID_MARCA'],$produto['CODIGO'],$produto['UNIDADE_MEDIDA'],$produto['VALOR_COMPRA'],$produto['VALOR_UNITARIO'],$produto['ESTOQUE_ATUAL'],$produto['STATUS'],$produto['IMAGEM'],$dest
-            ]);
+        if($stmt->fetchColumn()){
+            $erro = 'Produto já cadastrado nessa empresa.';
+        } else {
+            try{
+                $sql = "INSERT INTO PRODUTO (NOME,ID_TIPO,ID_CATEGORIA,ID_MARCA,CODIGO,UNIDADE_MEDIDA,VALOR_COMPRA,VALOR_UNITARIO,ESTOQUE_ATUAL,STATUS,IMAGEM,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+                $pdo->prepare($sql)->execute([
+                    $produto['NOME'],$produto['ID_TIPO'],$produto['ID_CATEGORIA'],$produto['ID_MARCA'],$produto['CODIGO'],$produto['UNIDADE_MEDIDA'],$produto['VALOR_COMPRA'],$produto['VALOR_UNITARIO'],$produto['ESTOQUE_ATUAL'],$produto['STATUS'],$produto['IMAGEM'],$dest
+                ]);
+                header('Location: produtos_list.php?msg=copiado');
+                exit;
+            }catch(PDOException $ex){
+                if($ex->getCode()==='23000'){
+                    $erro = 'Código de produto já existente.';
+                }else{
+                    $erro = $ex->getMessage();
+                }
+            }
         }
     }
-    header('Location: produtos_list.php');
-    exit;
 }
 
 $pageTitle = 'Copiar Produto';
@@ -47,6 +57,11 @@ include 'header.php';
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4">Copiar Produto: <?= htmlspecialchars($produto['NOME']) ?></h2>
+  <?php if(!empty($erro)): ?>
+    <div class="bg-red-100 text-red-700 p-2 mb-2 rounded">
+      <?= htmlspecialchars($erro) ?>
+    </div>
+  <?php endif; ?>
   <form method="post" class="space-y-4">
     <div>
       <label class="block mb-1">Empresa Destino</label>
