@@ -56,7 +56,13 @@ if ($showDashboard) {
     $descItens = $stmt->fetchColumn() ?: 0;
     $totalDesconto = $descVendas + $descItens;
     // Top 10 produtos com menor estoque (sem considerar período)
-    $stmt = $pdo->query("SELECT NOME AS PRODUTO, ESTOQUE_ATUAL FROM PRODUTO ORDER BY ESTOQUE_ATUAL ASC LIMIT 10");
+    $sql = "SELECT p.NOME, IFNULL(m.NOME,'') AS MARCA, p.CODIGO, e.NOME AS EMPRESA, p.ESTOQUE_ATUAL
+            FROM PRODUTO p
+            LEFT JOIN MARCA_PRODUTO m ON p.ID_MARCA = m.ID
+            LEFT JOIN EMPRESA e       ON p.ID_EMPRESA = e.ID
+            ORDER BY p.ESTOQUE_ATUAL ASC
+            LIMIT 10";
+    $stmt = $pdo->query($sql);
     $topProdutos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
@@ -127,7 +133,14 @@ if ($showDashboard) {
         </thead>
         <tbody>
             <?php foreach($topProdutos as $prod): ?>
-            <tr><td class="border-t p-2"><?= htmlspecialchars($prod['PRODUTO']) ?></td><td class="border-t p-2"><?= $prod['ESTOQUE_ATUAL'] ?></td></tr>
+            <tr>
+                <td class="border-t p-2">
+                    <?= htmlspecialchars($prod['NOME']) ?>
+                    <?php if($prod['MARCA']): ?> (<?= htmlspecialchars($prod['MARCA']) ?>)<?php endif; ?>
+                    - <?= htmlspecialchars($prod['CODIGO']) ?> | <?= htmlspecialchars($prod['EMPRESA']) ?>
+                </td>
+                <td class="border-t p-2 text-center"><?= $prod['ESTOQUE_ATUAL'] ?></td>
+            </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
