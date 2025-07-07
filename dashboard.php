@@ -4,32 +4,40 @@ include 'header.php';
 
 // Definir permissões e período
 $permissoes = $_SESSION['permissoes'];
-$isAdmin = strpos($permissoes, 'ADMINISTRADOR') !== false;
+$isAdmin   = strpos($permissoes, 'ADMINISTRADOR') !== false;
 $isDiretor = strpos($permissoes, 'DIRETORIA') !== false;
-$showDashboard = $isAdmin || $isDiretor;
+$isVend    = strpos($permissoes, 'VENDEDOR') !== false;
+$showDashboard = $isAdmin || $isDiretor || $isVend;
+$showFinance   = $isAdmin || $isDiretor;
 
 $start = $_GET['start'] ?? date('Y-m-01');
 $end   = $_GET['end']   ?? date('Y-m-d');
-$fUser = $_GET['user']  ?? '';
+$fUser = $isVend ? $_SESSION['user'] : ($_GET['user'] ?? '');
 $fEmp  = $_GET['empresa'] ?? '';
 
 $usuarios = $pdo->query("SELECT ID, NOME FROM USUARIO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $empresas = $pdo->query("SELECT ID, NOME FROM EMPRESA ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 
 if ($showDashboard) {
-    // Contas a Pagar
-    $stmt = $pdo->prepare("SELECT SUM(VALOR_PARCELA) FROM CONTAS_A_PAGAR WHERE DATA_VENCIMENTO BETWEEN ? AND ?");
-    $stmt->execute([$start, $end]);
-    $totalPagar = $stmt->fetchColumn() ?: 0;
-    // Contas a Receber
-    $stmt = $pdo->prepare("SELECT SUM(VALOR) FROM CONTAS_A_RECEBER WHERE DATA_VENCIMENTO BETWEEN ? AND ?");
-    $stmt->execute([$start, $end]);
-    $totalReceber = $stmt->fetchColumn() ?: 0;
+    if ($showFinance) {
+        $stmt = $pdo->prepare("SELECT SUM(VALOR_PARCELA) FROM CONTAS_A_PAGAR WHERE DATA_VENCIMENTO BETWEEN ? AND ?");
+        $stmt->execute([$start, $end]);
+        $totalPagar = $stmt->fetchColumn() ?: 0;
+        $stmt = $pdo->prepare("SELECT SUM(VALOR) FROM CONTAS_A_RECEBER WHERE DATA_VENCIMENTO BETWEEN ? AND ?");
+        $stmt->execute([$start, $end]);
+        $totalReceber = $stmt->fetchColumn() ?: 0;
+    }
     // filtros dinâmicos para vendas
     $where = "WHERE STATUS='CONCLUÍDA' AND DATA_VENDA BETWEEN ? AND ?";
     $params = [$start, $end];
     if ($fEmp) { $where .= " AND ID_EMPRESA=?"; $params[] = $fEmp; }
-    if ($fUser) { $where .= " AND ID_USUARIO=?"; $params[] = $fUser; }
+    if ($isVend) {
+        $where .= " AND ID_USUARIO=?";
+        $params[] = $_SESSION['user'];
+    } elseif ($fUser) {
+        $where .= " AND ID_USUARIO=?";
+        $params[] = $fUser;
+    }
     // Quantidade de vendas concluídas
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM VENDAS $where");
     $stmt->execute($params);
@@ -62,6 +70,7 @@ if ($showDashboard) {
             <label class="block text-sm">Fim</label>
             <input type="date" name="end" value="<?= htmlspecialchars($end) ?>" class="border rounded px-3 py-2 focus:ring focus:ring-primary/50">
         </div>
+        <?php if(!$isVend): ?>
         <div>
             <label class="block text-sm">Usuário</label>
             <select name="user" class="border rounded px-3 py-2 focus:ring focus:ring-primary/50">
@@ -71,6 +80,9 @@ if ($showDashboard) {
                 <?php endforeach; ?>
             </select>
         </div>
+        <?php else: ?>
+            <input type="hidden" name="user" value="<?= $_SESSION['user'] ?>">
+        <?php endif; ?>
         <div>
             <label class="block text-sm">Empresa</label>
             <select name="empresa" class="border rounded px-3 py-2 focus:ring focus:ring-primary/50">
@@ -88,11 +100,13 @@ if ($showDashboard) {
         <a href="step1.php" class="add-btn bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition">Nova Venda</a>
     </div>
     <?php if ($showDashboard): ?>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-<?= $showFinance ? '4' : '3' ?> gap-4 mb-6">
+        <?php if($showFinance): ?>
         <div class="bg-white rounded shadow p-4">
             <h3 class="font-semibold mb-2">Contas a Pagar x Receber</h3>
             <canvas id="chartContas"></canvas>
         </div>
+        <?php endif; ?>
         <div class="bg-white rounded shadow p-4">
             <h3 class="font-semibold mb-2">Vendas Efetuadas</h3>
             <p class="text-xl"><?= $cntVendas ?></p>
@@ -117,6 +131,7 @@ if ($showDashboard) {
             <?php endforeach; ?>
         </tbody>
     </table>
+    <?php if($showFinance): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('chartContas').getContext('2d');
@@ -127,6 +142,7 @@ if ($showDashboard) {
         });
     });
     </script>
+    <?php endif; ?>
     <?php else: ?>
     <h1 class="text-2xl">Olá, <?= htmlspecialchars($_SESSION['username']) ?>!</h1>
     <?php endif; ?>

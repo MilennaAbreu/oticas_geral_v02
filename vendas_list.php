@@ -3,7 +3,19 @@ $pageTitle = 'Vendas';
 include 'header.php';
 
 $allowed = userCompanies($pdo);
-if(!hasRole('ADMINISTRADOR','DIRETORIA') && $allowed){
+$isVend = hasRole('VENDEDOR');
+if($isVend){
+    $params = [$_SESSION['user']];
+    $sql = "SELECT v.ID, DATE_FORMAT(v.DATA_VENDA,'%d/%m/%Y') AS DATA_VENDA, c.NOME AS CLIENTE, v.VALOR_TOTAL, v.STATUS FROM VENDAS v LEFT JOIN CLIENTE c ON c.ID=v.ID_CLIENTE WHERE v.ID_USUARIO=?";
+    if($allowed){
+        $in = implode(',', array_fill(0,count($allowed),'?'));
+        $sql .= " AND v.ID_EMPRESA IN ($in)";
+        $params = array_merge($params, $allowed);
+    }
+    $sql .= " ORDER BY v.ID DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+} elseif(!hasRole('ADMINISTRADOR','DIRETORIA') && $allowed){
     $in = implode(',', array_fill(0,count($allowed),'?'));
     $sql = "SELECT v.ID, DATE_FORMAT(v.DATA_VENDA,'%d/%m/%Y') AS DATA_VENDA, c.NOME AS CLIENTE, v.VALOR_TOTAL, v.STATUS FROM VENDAS v LEFT JOIN CLIENTE c ON c.ID=v.ID_CLIENTE WHERE v.ID_EMPRESA IN ($in) ORDER BY v.ID DESC";
     $stmt = $pdo->prepare($sql);
