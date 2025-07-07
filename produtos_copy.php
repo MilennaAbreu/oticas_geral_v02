@@ -29,16 +29,28 @@ if(!hasRole('ADMINISTRADOR','DIRETORIA') && $empresaIds){
 if($_SERVER['REQUEST_METHOD']==='POST'){
     $dest = $_POST['id_empresa'] ?? null;
     $estoque = $_POST['estoque_atual'] ?? $produto['ESTOQUE_ATUAL'];
+    $codigo = trim($produto['CODIGO']);
     if($dest){
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?");
-        $stmt->execute([$produto['CODIGO'],$dest]);
+        $stmt->execute([$codigo,$dest]);
         if($stmt->fetchColumn()){
             $erro = 'Produto já cadastrado nessa empresa.';
         } else {
             try{
                 $sql = "INSERT INTO PRODUTO (NOME,ID_TIPO,ID_CATEGORIA,ID_MARCA,CODIGO,UNIDADE_MEDIDA,VALOR_COMPRA,VALOR_UNITARIO,ESTOQUE_ATUAL,STATUS,IMAGEM,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
                 $pdo->prepare($sql)->execute([
-                    $produto['NOME'],$produto['ID_TIPO'],$produto['ID_CATEGORIA'],$produto['ID_MARCA'],$produto['CODIGO'],$produto['UNIDADE_MEDIDA'],$produto['VALOR_COMPRA'],$produto['VALOR_UNITARIO'],$estoque,$produto['STATUS'],$produto['IMAGEM'],$dest
+                    $produto['NOME'],
+                    $produto['ID_TIPO'],
+                    $produto['ID_CATEGORIA'],
+                    $produto['ID_MARCA'],
+                    $codigo,
+                    $produto['UNIDADE_MEDIDA'],
+                    $produto['VALOR_COMPRA'],
+                    $produto['VALOR_UNITARIO'],
+                    $estoque,
+                    $produto['STATUS'],
+                    $produto['IMAGEM'],
+                    $dest
                 ]);
                 header('Location: produtos_list.php?msg=copiado');
                 exit;

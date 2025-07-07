@@ -1,0 +1,4 @@
+-- Garante unicidade de codigo por empresa
+ALTER TABLE PRODUTO
+  DROP INDEX CODIGO,
+  ADD UNIQUE KEY UQ_PROD_COD_EMPRESA (CODIGO, ID_EMPRESA);

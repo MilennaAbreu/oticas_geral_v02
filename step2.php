@@ -29,10 +29,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     exit;
 }
 
-$produtos = $pdo->query("SELECT p.ID,p.NOME,p.CODIGO,p.UNIDADE_MEDIDA,p.ESTOQUE_ATUAL,p.VALOR_UNITARIO,IFNULL(m.NOME,'') AS MARCA
-                          FROM PRODUTO p
-                          LEFT JOIN MARCA_PRODUTO m ON p.ID_MARCA = m.ID
-                          ORDER BY p.NOME")->fetchAll(PDO::FETCH_ASSOC);
+$empresaId = $_SESSION['venda']['ID_EMPRESA'];
+$stmtProd = $pdo->prepare("SELECT p.ID,p.NOME,p.CODIGO,p.UNIDADE_MEDIDA,p.ESTOQUE_ATUAL,p.VALOR_UNITARIO,IFNULL(m.NOME,'') AS MARCA
+                            FROM PRODUTO p
+                            LEFT JOIN MARCA_PRODUTO m ON p.ID_MARCA = m.ID
+                            WHERE p.ID_EMPRESA=?
+                            ORDER BY p.NOME");
+$stmtProd->execute([$empresaId]);
+$produtos = $stmtProd->fetchAll(PDO::FETCH_ASSOC);
 $prodMap = [];
 foreach($produtos as $p){
     $prodMap[$p['ID']] = $p;
@@ -60,7 +64,7 @@ include 'header.php';
         <?php foreach($itens as $i): $p = $prodMap[$i['ID_PRODUTO']] ?? null; ?>
         <tr>
           <td>
-            <select name="produto_id[]" class="border p-1 rounded w-full" onchange="updateProd(this)">
+            <select name="produto_id[]" class="border p-1 rounded w-full md:w-80" style="min-width:16rem" onchange="updateProd(this)">
               <option value="">Selecione</option>
               <?php foreach($produtos as $prod): ?>
                 <option value="<?= $prod['ID'] ?>" data-unidade="<?= $prod['UNIDADE_MEDIDA'] ?>" data-estoque="<?= $prod['ESTOQUE_ATUAL'] ?>" data-valor="<?= $prod['VALOR_UNITARIO'] ?>" <?= $i['ID_PRODUTO']==$prod['ID']?'selected':'' ?>><?= htmlspecialchars($prod['NOME'].' - ('.$prod['MARCA'].') - '.$prod['CODIGO']) ?></option>
@@ -96,7 +100,7 @@ function optionHtml(p){
 }
 function addRow(){
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><select name="produto_id[]" class="border p-1 rounded w-full" onchange="updateProd(this)">
+  tr.innerHTML = `<td><select name="produto_id[]" class="border p-1 rounded w-full md:w-80" style="min-width:16rem" onchange="updateProd(this)">
     <option value="">Selecione</option>
     ${produtos.map(optionHtml).join('')}
   </select></td>
