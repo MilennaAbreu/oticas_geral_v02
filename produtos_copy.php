@@ -57,7 +57,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 exit;
             }catch(PDOException $ex){
                 if($ex->getCode()==='23000'){
-                    $erro = 'Já existe produto com este código para a empresa selecionada. SQL: '.htmlspecialchars($debugSql);
+                    // double-check if codigo existe em outra empresa
+                    $chk = $pdo->prepare('SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=?');
+                    $chk->execute([$codigo]);
+                    if($chk->fetchColumn()){
+                        $erro = 'Já existe produto com este código cadastrado em outra empresa. SQL: '.htmlspecialchars($debugSql);
+                    } else {
+                        $erro = 'Já existe produto com este código para a empresa selecionada. SQL: '.htmlspecialchars($debugSql);
+                    }
                 }else{
                     $erro = $ex->getMessage().' SQL: '.htmlspecialchars($debugSql);
                 }
