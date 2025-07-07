@@ -32,10 +32,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $codigo = trim($produto['CODIGO']);
     if($dest){
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?");
-        $stmt->execute([$codigo,$dest]);
-        $debugSql = "SELECT COUNT(*) FROM PRODUTO WHERE CODIGO='".addslashes($codigo)."' AND ID_EMPRESA=".intval($dest);
+        $stmt->execute([$codigo, $dest]);
+        $debugSql  = "SELECT COUNT(*) FROM PRODUTO WHERE CODIGO='" . addslashes($codigo) . "' AND ID_EMPRESA=" . intval($dest);
+        $crossSql  = "SELECT COUNT(*) FROM PRODUTO WHERE CODIGO='" . addslashes($codigo) . "'";
         if($stmt->fetchColumn()){
-            $erro = 'Produto já cadastrado nessa empresa. SQL: '.htmlspecialchars($debugSql);
+            $erro = 'Produto já cadastrado nessa empresa. SQL: <code>' . htmlspecialchars($debugSql, ENT_NOQUOTES) . '</code>';
         } else {
             try{
                 $sql = "INSERT INTO PRODUTO (NOME,ID_TIPO,ID_CATEGORIA,ID_MARCA,CODIGO,UNIDADE_MEDIDA,VALOR_COMPRA,VALOR_UNITARIO,ESTOQUE_ATUAL,STATUS,IMAGEM,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -57,16 +58,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 exit;
             }catch(PDOException $ex){
                 if($ex->getCode()==='23000'){
-                    // double-check if codigo existe em outra empresa
+                    // double-check if codigo existe em alguma empresa
                     $chk = $pdo->prepare('SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=?');
                     $chk->execute([$codigo]);
                     if($chk->fetchColumn()){
-                        $erro = 'Já existe produto com este código cadastrado em outra empresa. SQL: '.htmlspecialchars($debugSql);
+                        $erro = 'Já existe produto com este código cadastrado em outra empresa. SQL: <code>' . htmlspecialchars($crossSql, ENT_NOQUOTES) . '</code>';
                     } else {
-                        $erro = 'Já existe produto com este código para a empresa selecionada. SQL: '.htmlspecialchars($debugSql);
+                        $erro = 'Já existe produto com este código para a empresa selecionada. SQL: <code>' . htmlspecialchars($debugSql, ENT_NOQUOTES) . '</code>';
                     }
                 }else{
-                    $erro = $ex->getMessage().' SQL: '.htmlspecialchars($debugSql);
+                    $erro = htmlspecialchars($ex->getMessage()) . ' SQL: <code>' . htmlspecialchars($debugSql, ENT_NOQUOTES) . '</code>';
                 }
             }
         }
