@@ -33,8 +33,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     if($dest){
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?");
         $stmt->execute([$codigo,$dest]);
+        $debugSql = "SELECT COUNT(*) FROM PRODUTO WHERE CODIGO='".addslashes($codigo)."' AND ID_EMPRESA=".intval($dest);
         if($stmt->fetchColumn()){
-            $erro = 'Produto já cadastrado nessa empresa.';
+            $erro = 'Produto já cadastrado nessa empresa. SQL: '.htmlspecialchars($debugSql);
         } else {
             try{
                 $sql = "INSERT INTO PRODUTO (NOME,ID_TIPO,ID_CATEGORIA,ID_MARCA,CODIGO,UNIDADE_MEDIDA,VALOR_COMPRA,VALOR_UNITARIO,ESTOQUE_ATUAL,STATUS,IMAGEM,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -56,9 +57,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 exit;
             }catch(PDOException $ex){
                 if($ex->getCode()==='23000'){
-                    $erro = 'Já existe produto com este código para a empresa selecionada.';
+                    $erro = 'Já existe produto com este código para a empresa selecionada. SQL: '.htmlspecialchars($debugSql);
                 }else{
-                    $erro = $ex->getMessage();
+                    $erro = $ex->getMessage().' SQL: '.htmlspecialchars($debugSql);
                 }
             }
         }
