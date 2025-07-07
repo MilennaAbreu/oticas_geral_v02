@@ -28,6 +28,7 @@ if(!hasRole('ADMINISTRADOR','DIRETORIA') && $empresaIds){
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
     $dest = $_POST['id_empresa'] ?? null;
+    $estoque = $_POST['estoque_atual'] ?? $produto['ESTOQUE_ATUAL'];
     if($dest){
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?");
         $stmt->execute([$produto['CODIGO'],$dest]);
@@ -37,13 +38,13 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             try{
                 $sql = "INSERT INTO PRODUTO (NOME,ID_TIPO,ID_CATEGORIA,ID_MARCA,CODIGO,UNIDADE_MEDIDA,VALOR_COMPRA,VALOR_UNITARIO,ESTOQUE_ATUAL,STATUS,IMAGEM,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
                 $pdo->prepare($sql)->execute([
-                    $produto['NOME'],$produto['ID_TIPO'],$produto['ID_CATEGORIA'],$produto['ID_MARCA'],$produto['CODIGO'],$produto['UNIDADE_MEDIDA'],$produto['VALOR_COMPRA'],$produto['VALOR_UNITARIO'],$produto['ESTOQUE_ATUAL'],$produto['STATUS'],$produto['IMAGEM'],$dest
+                    $produto['NOME'],$produto['ID_TIPO'],$produto['ID_CATEGORIA'],$produto['ID_MARCA'],$produto['CODIGO'],$produto['UNIDADE_MEDIDA'],$produto['VALOR_COMPRA'],$produto['VALOR_UNITARIO'],$estoque,$produto['STATUS'],$produto['IMAGEM'],$dest
                 ]);
                 header('Location: produtos_list.php?msg=copiado');
                 exit;
             }catch(PDOException $ex){
                 if($ex->getCode()==='23000'){
-                    $erro = 'Código de produto já existente.';
+                    $erro = 'Já existe produto com este código para a empresa selecionada.';
                 }else{
                     $erro = $ex->getMessage();
                 }
@@ -71,6 +72,10 @@ include 'header.php';
         <option value="<?= $e['ID'] ?>"><?= htmlspecialchars($e['NOME']) ?></option>
         <?php endif; endforeach; ?>
       </select>
+    </div>
+    <div>
+      <label class="block mb-1">Estoque Atual</label>
+      <input type="number" name="estoque_atual" value="<?= htmlspecialchars($produto['ESTOQUE_ATUAL']) ?>" class="border p-2 rounded w-full" min="0">
     </div>
     <button class="bg-primary text-white px-4 py-2 rounded" type="submit">Copiar</button>
   </form>
