@@ -3,6 +3,7 @@ $pageTitle = 'Novo Produto';
 include 'header.php';
 
 $id = $_GET['id'] ?? null;
+$error = $_GET['erro'] ?? '';
 $produto = [
     'NOME'           => '',
     'ID_TIPO'        => '',
@@ -10,10 +11,12 @@ $produto = [
     'ID_MARCA'       => '',
     'CODIGO'         => '',
     'UNIDADE_MEDIDA' => 'UN',
+    'VALOR_COMPRA'   => '',
     'VALOR_UNITARIO' => '',
     'ESTOQUE_ATUAL'  => '',
     'IMAGEM'         => '',
-    'STATUS'         => 'ATIVO'
+    'STATUS'         => 'ATIVO',
+    'ID_EMPRESA'     => ''
 ];
 
 if ($id) {
@@ -24,9 +27,21 @@ if ($id) {
 $categorias = $pdo->query("SELECT * FROM CATEGORIA_PRODUTO")->fetchAll(PDO::FETCH_ASSOC);
 $tipos      = $pdo->query("SELECT * FROM TIPO_PRODUTO")->fetchAll(PDO::FETCH_ASSOC);
 $marcas     = $pdo->query("SELECT * FROM MARCA_PRODUTO")->fetchAll(PDO::FETCH_ASSOC);
+$empresaIds = userCompanies($pdo);
+if(!hasRole('ADMINISTRADOR','DIRETORIA') && $empresaIds){
+    $in = implode(',', array_fill(0,count($empresaIds),'?'));
+    $stmt = $pdo->prepare("SELECT ID, NOME FROM EMPRESA WHERE ID IN ($in) ORDER BY NOME");
+    $stmt->execute($empresaIds);
+    $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $empresas = $pdo->query("SELECT ID, NOME FROM EMPRESA ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4"><?= $id ? 'Editar' : 'Novo' ?> Produto</h2>
+  <?php if($error==='dup'): ?>
+    <p class="text-red-600 mb-2">Já existe produto com este código para a empresa selecionada.</p>
+  <?php endif; ?>
   <form method="POST" action="produtos_save.php" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <input type="hidden" name="id" value="<?= $id ?>">
     <div><label>Nome</label><input name="nome" value="<?= $produto['NOME'] ?>" class="border p-2 w-full rounded" required></div>
@@ -44,7 +59,8 @@ $marcas     = $pdo->query("SELECT * FROM MARCA_PRODUTO")->fetchAll(PDO::FETCH_AS
     </div>
     <div><label>Código</label><input name="codigo" value="<?= $produto['CODIGO'] ?>" class="border p-2 w-full rounded"></div>
     <div><label>Unidade de Medida</label><input name="unidade_medida" value="<?= $produto['UNIDADE_MEDIDA'] ?>" class="border p-2 w-full rounded"></div>
-    <div><label>Valor Unitário</label><input name="valor_unitario" value="<?= $produto['VALOR_UNITARIO'] ?>" class="border p-2 w-full rounded" required></div>
+    <div><label>Valor Compra</label><input name="valor_compra" value="<?= $produto['VALOR_COMPRA'] ?>" class="border p-2 w-full rounded"></div>
+    <div><label>Valor para Venda</label><input name="valor_unitario" value="<?= $produto['VALOR_UNITARIO'] ?>" class="border p-2 w-full rounded" required></div>
     <div><label>Estoque Atual</label><input name="estoque_atual" value="<?= $produto['ESTOQUE_ATUAL'] ?>" class="border p-2 w-full rounded" required></div>
     <div>
       <label>Status</label>
@@ -76,6 +92,15 @@ $marcas     = $pdo->query("SELECT * FROM MARCA_PRODUTO")->fetchAll(PDO::FETCH_AS
         </select>
         <button type="button" onclick="openModal('modalTipo')" class="ml-2 px-3 py-1 bg-gray-300 rounded">+</button>
       </div>
+    </div>
+    <div>
+      <label>Empresa</label>
+      <select name="id_empresa" class="border p-2 w-full rounded" required>
+        <option value="">Selecione</option>
+        <?php foreach($empresas as $e): ?>
+          <option value="<?= $e['ID'] ?>" <?= $produto['ID_EMPRESA']==$e['ID']?'selected':'' ?>><?= $e['NOME'] ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
     <div>
       <label>Imagem</label>

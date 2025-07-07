@@ -10,8 +10,23 @@ $id_marca       = $_POST['id_marca'] ?: null;
 $codigo         = $_POST['codigo'] ?? null;
 $unidade        = $_POST['unidade_medida'] ?? 'UN';
 $valor_unitario = str_replace(',', '.', $_POST['valor_unitario'] ?? '0');
+$valor_compra  = str_replace(',', '.', $_POST['valor_compra'] ?? '0');
 $estoque        = $_POST['estoque_atual'] ?? 0;
 $status         = $_POST['status'] ?? 'ATIVO';
+$id_empresa     = $_POST['id_empresa'] ?: null;
+
+// verifica duplicidade de codigo por empresa
+if ($codigo && $id_empresa) {
+    $sql = "SELECT ID FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?" . ($id ? " AND ID<>?" : "");
+    $params = [$codigo, $id_empresa];
+    if ($id) $params[] = $id;
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    if ($stmt->fetch()) {
+        header('Location: produtos_form.php?erro=dup' . ($id ? "&id=$id" : ''));
+        exit;
+    }
+}
 
 $imagem = null;
 if(!empty($_FILES['imagem']['name'])){
@@ -28,11 +43,11 @@ if($id){
         $stmt->execute([$id]);
         $imagem = $stmt->fetchColumn();
     }
-    $sql = "UPDATE PRODUTO SET NOME=?, ID_TIPO=?, ID_CATEGORIA=?, ID_MARCA=?, CODIGO=?, UNIDADE_MEDIDA=?, VALOR_UNITARIO=?, ESTOQUE_ATUAL=?, STATUS=?, IMAGEM=? WHERE ID=?";
-    $pdo->prepare($sql)->execute([$nome,$id_tipo,$id_categoria,$id_marca,$codigo,$unidade,$valor_unitario,$estoque,$status,$imagem,$id]);
+    $sql = "UPDATE PRODUTO SET NOME=?, ID_TIPO=?, ID_CATEGORIA=?, ID_MARCA=?, CODIGO=?, UNIDADE_MEDIDA=?, VALOR_COMPRA=?, VALOR_UNITARIO=?, ESTOQUE_ATUAL=?, STATUS=?, IMAGEM=?, ID_EMPRESA=? WHERE ID=?";
+    $pdo->prepare($sql)->execute([$nome,$id_tipo,$id_categoria,$id_marca,$codigo,$unidade,$valor_compra,$valor_unitario,$estoque,$status,$imagem,$id_empresa,$id]);
 } else {
-    $sql = "INSERT INTO PRODUTO (NOME, ID_TIPO, ID_CATEGORIA, ID_MARCA, CODIGO, UNIDADE_MEDIDA, VALOR_UNITARIO, ESTOQUE_ATUAL, STATUS, IMAGEM) VALUES (?,?,?,?,?,?,?,?,?,?)";
-    $pdo->prepare($sql)->execute([$nome,$id_tipo,$id_categoria,$id_marca,$codigo,$unidade,$valor_unitario,$estoque,$status,$imagem]);
+    $sql = "INSERT INTO PRODUTO (NOME, ID_TIPO, ID_CATEGORIA, ID_MARCA, CODIGO, UNIDADE_MEDIDA, VALOR_COMPRA, VALOR_UNITARIO, ESTOQUE_ATUAL, STATUS, IMAGEM, ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+    $pdo->prepare($sql)->execute([$nome,$id_tipo,$id_categoria,$id_marca,$codigo,$unidade,$valor_compra,$valor_unitario,$estoque,$status,$imagem,$id_empresa]);
 }
 
 header('Location: produtos_list.php');

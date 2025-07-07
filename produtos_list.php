@@ -12,14 +12,17 @@ $sql = "SELECT p.ID,
                m.NOME AS MARCA,
                p.CODIGO,
                p.UNIDADE_MEDIDA,
+               p.VALOR_COMPRA,
                p.VALOR_UNITARIO,
                p.ESTOQUE_ATUAL,
                p.STATUS,
-               p.IMAGEM
+               p.IMAGEM,
+               e.NOME AS EMPRESA
         FROM PRODUTO p
         LEFT JOIN CATEGORIA_PRODUTO c ON p.ID_CATEGORIA = c.ID
         LEFT JOIN TIPO_PRODUTO t      ON p.ID_TIPO      = t.ID
-        LEFT JOIN MARCA_PRODUTO m     ON p.ID_MARCA     = m.ID";
+        LEFT JOIN MARCA_PRODUTO m     ON p.ID_MARCA     = m.ID
+        LEFT JOIN EMPRESA e           ON p.ID_EMPRESA   = e.ID";
 
 $items = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 $error = isset($_GET['erro']);
@@ -34,7 +37,7 @@ $error = isset($_GET['erro']);
   <?php endif; ?>
   <table id="produtosTable" class="display w-full">
     <thead>
-      <tr><th>ID</th><th>Nome</th><th>Categoria</th><th>Tipo</th><th>Marca</th><th>Código</th><th>Un. Med.</th><th>Valor Unitário</th><th>Estoque</th><th>Status</th><th>Imagem</th><th>Ações</th></tr>
+      <tr><th>ID</th><th>Nome</th><th>Categoria</th><th>Tipo</th><th>Marca</th><th>Código</th><th>Un. Med.</th><th>Valor Compra</th><th>Valor Venda</th><th>Estoque</th><th>Empresa</th><th>Status</th><th>Imagem</th><th>Ações</th></tr>
     </thead>
     <tbody>
     <?php foreach($items as $it): ?>
@@ -46,12 +49,15 @@ $error = isset($_GET['erro']);
         <td><?= $it['MARCA'] ?></td>
         <td><?= $it['CODIGO'] ?></td>
         <td><?= $it['UNIDADE_MEDIDA'] ?></td>
+        <td><?= number_format($it['VALOR_COMPRA'],2,',','.') ?></td>
         <td><?= number_format($it['VALOR_UNITARIO'],2,',','.') ?></td>
         <td><?= $it['ESTOQUE_ATUAL'] ?></td>
+        <td><?= $it['EMPRESA'] ?></td>
         <td><?= $it['STATUS'] ?></td>
         <td><?php if($it['IMAGEM']): ?><img src="uploads/<?= $it['IMAGEM'] ?>" width="50"><?php endif; ?></td>
         <td class="table-actions">
           <a href="produtos_form.php?id=<?= $it['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+          <a href="produtos_copy.php?id=<?= $it['ID'] ?>" class="edit" title="Copiar"><i class="fas fa-copy"></i></a>
           <?php if($canDelete): ?>
             <a href="produtos_delete.php?id=<?= $it['ID'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
           <?php endif; ?>
