@@ -125,6 +125,7 @@ require_once 'permissions.php';
         <ul class="submenu pl-6 space-y-1">
           <li><a href="conserto_list.php" class="menu-item">Consertos</a></li>
           <li><a href="vendas_list.php" class="menu-item">Vendas</a></li>
+          <li><a href="fidelidade_list.php" class="menu-item">Fidelidade Cliente</a></li>
           <li><a href="encaminhamento_list.php" class="menu-item">Encaminhamentos</a></li>
         </ul>
       </li>
