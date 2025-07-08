@@ -15,7 +15,7 @@ $brindes = $pdo->query("SELECT p.ID,p.NOME FROM PRODUTO p JOIN CATEGORIA_PRODUTO
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-2xl font-semibold">Fidelidade de Clientes</h2>
   </div>
-  <table id=\"fidTable\" class=\"display w-full\">
+  <table id="fidTable" class="display w-full">
     <thead>
       <tr><th>Cliente</th><th>Contato</th><th>Pontos</th><th>Última Atualização</th><th>Ações</th></tr>
     </thead>
@@ -67,29 +67,27 @@ function openModal(id){
 }
 function closeModal(){ document.getElementById('modalTroca').classList.add('hidden'); }
 
-document.addEventListener('click',function(e){
-  const link = e.target.closest('.troca');
-  if(link){
+$(function(){
+  $(document).on('click','.troca',function(e){
     e.preventDefault();
-    openModal(link.dataset.id);
-  }
-});
-
-document.getElementById('addBrinde').onclick=()=>{
-  document.getElementById('brindeRows').insertAdjacentHTML('beforeend',rowHtml());
-};
-
-document.addEventListener('click',e=>{
-  if(e.target.classList.contains('removeBrinde')){
-    e.target.parentElement.remove();
-  }
-});
-
-document.getElementById('trocaForm').addEventListener('submit',function(e){
-  e.preventDefault();
-  fetch('fidelidade_exchange.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(this))})
-  .then(r=>r.json())
-  .then(d=>{if(d.success){alert('Troca realizada');location.reload();}else alert(d.error||'Erro');});
+    openModal($(this).data('id'));
+  });
+  $('#addBrinde').on('click',function(){
+    $('#brindeRows').append(rowHtml());
+  });
+  $(document).on('click','.removeBrinde',function(){
+    $(this).closest('.brindeRow').remove();
+  });
+  $('#trocaForm').on('submit',function(e){
+    e.preventDefault();
+    fetch('fidelidade_exchange.php',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams(new FormData(this))
+    })
+    .then(r=>r.json())
+    .then(d=>{ if(d.success){ alert('Troca realizada'); location.reload(); } else alert(d.error||'Erro'); });
+  });
 });
 </script>
 <?php include 'footer.php'; ?>
