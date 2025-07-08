@@ -34,16 +34,16 @@ $brindes = $pdo->query("SELECT p.ID,p.NOME FROM PRODUTO p JOIN CATEGORIA_PRODUTO
     </tbody>
   </table>
 </div>
-<div id=\"modalTroca\" class=\"hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center\">
-  <div class=\"bg-white p-4 rounded w-96 shadow-lg\">
-    <h3 class=\"text-lg mb-2\">Trocar Pontos</h3>
-    <form id=\"trocaForm\" class=\"space-y-2\">
-      <input type=\"hidden\" name=\"id_cliente\" id=\"trocaCliente\">
-      <div id=\"brindeRows\"></div>
-      <button type=\"button\" id=\"addBrinde\" class=\"mt-2 px-2 py-1 bg-gray-300 rounded\">+</button>
-      <div class=\"text-right mt-4\">
-        <button type=\"button\" class=\"mr-2 px-3 py-1\" onclick=\"closeModal()\">Cancelar</button>
-        <button type=\"submit\" class=\"bg-primary text-white px-3 py-1 rounded\">Concluir</button>
+<div id="modalTroca" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded w-96 shadow-lg">
+    <h3 class="text-lg mb-2">Trocar Pontos</h3>
+    <form id="trocaForm" class="space-y-2">
+      <input type="hidden" name="id_cliente" id="trocaCliente">
+      <div id="brindeRows"></div>
+      <button type="button" id="addBrinde" class="mt-2 px-2 py-1 bg-gray-300 rounded">+</button>
+      <div class="text-right mt-4">
+        <button type="button" class="mr-2 px-3 py-1" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="bg-primary text-white px-3 py-1 rounded">Concluir</button>
       </div>
     </form>
   </div>
