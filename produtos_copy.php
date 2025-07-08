@@ -30,14 +30,21 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $dest = $_POST['id_empresa'] ?? null;
     $estoque = $_POST['estoque_atual'] ?? $produto['ESTOQUE_ATUAL'];
     $codigo = trim($produto['CODIGO']);
+    $codigo = $codigo === '' ? null : $codigo;
     if($dest){
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?");
-        $stmt->execute([$codigo, $dest]);
-        $debugSql  = "SELECT COUNT(*) FROM PRODUTO WHERE CODIGO='" . addslashes($codigo) . "' AND ID_EMPRESA=" . intval($dest);
-        $crossSql  = "SELECT COUNT(*) FROM PRODUTO WHERE CODIGO='" . addslashes($codigo) . "'";
-        if($stmt->fetchColumn()){
-            $erro = 'Produto já cadastrado nessa empresa. SQL: <code>' . htmlspecialchars($debugSql, ENT_NOQUOTES) . '</code>';
-        } else {
+        $debugSql = $crossSql = null;
+        $duplicate = false;
+        if($codigo !== null){
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?");
+            $stmt->execute([$codigo, $dest]);
+            $debugSql  = "SELECT COUNT(*) FROM PRODUTO WHERE CODIGO='" . addslashes($codigo) . "' AND ID_EMPRESA=" . intval($dest);
+            $crossSql  = "SELECT COUNT(*) FROM PRODUTO WHERE CODIGO='" . addslashes($codigo) . "'";
+            if($stmt->fetchColumn()){
+                $erro = 'Produto já cadastrado nessa empresa. SQL: <code>' . htmlspecialchars($debugSql, ENT_NOQUOTES) . '</code>';
+                $duplicate = true;
+            }
+        }
+        if(!$duplicate){
             try{
                 $sql = "INSERT INTO PRODUTO (NOME,ID_TIPO,ID_CATEGORIA,ID_MARCA,CODIGO,UNIDADE_MEDIDA,VALOR_COMPRA,VALOR_UNITARIO,ESTOQUE_ATUAL,STATUS,IMAGEM,ID_EMPRESA) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
                 $pdo->prepare($sql)->execute([
@@ -58,7 +65,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 exit;
             }catch(PDOException $ex){
                 if($ex->getCode()==='23000'){
-                    // double-check if codigo existe em alguma empresa
                     $chk = $pdo->prepare('SELECT COUNT(*) FROM PRODUTO WHERE CODIGO=?');
                     $chk->execute([$codigo]);
                     if($chk->fetchColumn()){
@@ -67,7 +73,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                         $erro = 'Já existe produto com este código para a empresa selecionada. SQL: <code>' . htmlspecialchars($debugSql, ENT_NOQUOTES) . '</code>';
                     }
                 }else{
-                    $erro = htmlspecialchars($ex->getMessage()) . ' SQL: <code>' . htmlspecialchars($debugSql, ENT_NOQUOTES) . '</code>';
+                    $erro = htmlspecialchars($ex->getMessage()) . ' SQL: <code>' . htmlspecialchars($debugSql ?? '', ENT_NOQUOTES) . '</code>';
                 }
             }
         }

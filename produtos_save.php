@@ -8,6 +8,7 @@ $id_tipo        = $_POST['id_tipo'] ?: null;
 $id_categoria   = $_POST['id_categoria'] ?: null;
 $id_marca       = $_POST['id_marca'] ?: null;
 $codigo         = isset($_POST['codigo']) ? trim($_POST['codigo']) : null;
+$codigo         = $codigo === '' ? null : $codigo;
 $unidade        = $_POST['unidade_medida'] ?? 'UN';
 $valor_unitario = str_replace(',', '.', $_POST['valor_unitario'] ?? '0');
 $valor_compra  = str_replace(',', '.', $_POST['valor_compra'] ?? '0');
@@ -15,7 +16,7 @@ $estoque        = $_POST['estoque_atual'] ?? 0;
 $status         = $_POST['status'] ?? 'ATIVO';
 $id_empresa     = $_POST['id_empresa'] ?: null;
 
-// verifica duplicidade de codigo por empresa, inclusive codigo vazio
+// verifica duplicidade de codigo por empresa, desconsiderando codigos vazios
 if ($id_empresa !== null && $codigo !== null) {
     $sql = "SELECT ID FROM PRODUTO WHERE CODIGO=? AND ID_EMPRESA=?" . ($id ? " AND ID<>?" : "");
     $params = [$codigo, $id_empresa];
