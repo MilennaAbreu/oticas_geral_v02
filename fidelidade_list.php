@@ -12,7 +12,9 @@ $items = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 $brindes = $pdo->query("SELECT p.ID,p.NOME FROM PRODUTO p JOIN CATEGORIA_PRODUTO c ON p.ID_CATEGORIA=c.ID WHERE c.NOME='BRINDE'")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <div class="container mx-auto">
-  <h2 class="text-2xl font-semibold mb-4">Fidelidade de Clientes</h2>
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-semibold">Fidelidade de Clientes</h2>
+  </div>
   <table id=\"fidTable\" class=\"display w-full\">
     <thead>
       <tr><th>Cliente</th><th>Contato</th><th>Pontos</th><th>Última Atualização</th><th>Ações</th></tr>
@@ -25,7 +27,7 @@ $brindes = $pdo->query("SELECT p.ID,p.NOME FROM PRODUTO p JOIN CATEGORIA_PRODUTO
         <td><?= $it['PONTOS'] ?></td>
         <td><?= $it['ULTIMA_ATUALIZACAO'] ?></td>
         <td class="table-actions">
-          <a href="#" class="troca" data-id="<?= $it['ID_CLIENTE'] ?>" title="Trocar Pontos"><i class="fas fa-exchange-alt"></i></a>
+          <a href="#" class="troca edit" data-id="<?= $it['ID_CLIENTE'] ?>" title="Trocar Pontos"><i class="fas fa-exchange-alt"></i></a>
         </td>
       </tr>
     <?php endforeach; ?>
@@ -33,7 +35,7 @@ $brindes = $pdo->query("SELECT p.ID,p.NOME FROM PRODUTO p JOIN CATEGORIA_PRODUTO
   </table>
 </div>
 <div id=\"modalTroca\" class=\"hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center\">
-  <div class=\"bg-white p-4 rounded w-96\">
+  <div class=\"bg-white p-4 rounded w-96 shadow-lg\">
     <h3 class=\"text-lg mb-2\">Trocar Pontos</h3>
     <form id=\"trocaForm\" class=\"space-y-2\">
       <input type=\"hidden\" name=\"id_cliente\" id=\"trocaCliente\">
@@ -65,8 +67,12 @@ function openModal(id){
 }
 function closeModal(){ document.getElementById('modalTroca').classList.add('hidden'); }
 
-document.querySelectorAll('.troca').forEach(btn=>{
-  btn.addEventListener('click',e=>{e.preventDefault();openModal(btn.dataset.id);});
+document.addEventListener('click',function(e){
+  const link = e.target.closest('.troca');
+  if(link){
+    e.preventDefault();
+    openModal(link.dataset.id);
+  }
 });
 
 document.getElementById('addBrinde').onclick=()=>{
