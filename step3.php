@@ -18,6 +18,16 @@ $idCond  = $_POST['id_condicao_pagamento'] ?? '';
 $formasPag   = $_POST['formas_pagamento'] ?? [];
 $valoresPag  = $_POST['valores_pagamento'] ?? [];
 $idMet   = $formasPag[0] ?? '';
+
+// detect possible column names for metodo de pagamento nas tabelas
+$metColVenda = null;
+foreach(['ID_METODO_PAGAMENTO','ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $c){
+    if(columnExists($pdo,'VENDAS',$c)){ $metColVenda = $c; break; }
+}
+$metColJuros = 'ID_METODO_PAGAMENTO';
+foreach(['ID_METODO_PAGAMENTO','ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $c){
+    if(columnExists($pdo,'JUROS_METODO_CONDICAO',$c)){ $metColJuros = $c; break; }
+}
 $idFrete = $_POST['id_frete'] ?? '';
 $dataEntrega = $_POST['data_entrega'] ?? '';
 $telContato    = $_POST['telefone_contato'] ?? $cliente['CONTATO'];
@@ -59,7 +69,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
                FROM CONDICAO_PAGAMENTO c
                LEFT JOIN JUROS_METODO_CONDICAO j
                  ON j.ID_CONDICAO = c.ID
-                AND j.ID_METODO_PAGAMENTO = ?
+                AND j.{$metColJuros} = ?
               WHERE c.ID = ?"
         );
         $st->execute([$idMet, $idCond]);
@@ -98,16 +108,18 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $hasParc     = columnExists($pdo,'VENDAS','NUMERO_PARCELAS');
         $hasVenc     = columnExists($pdo,'VENDAS','DATA_VENCIMENTO_PARCELA');
         $hasForma    = columnExists($pdo,'VENDAS','FORMA_PAGAMENTO');
-        $cols = [
-            'ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO','ID_METODO_PAGAMENTO','JUROS_APLICADO'
-        ];
+        $cols = ['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO'];
         $vals = [
             $_SESSION['venda']['ID_CLIENTE'],
             $_SESSION['venda']['ID_USUARIO'],
-            $idCond,
-            $idMet,
-            $juros
+            $idCond
         ];
+        if($metColVenda){
+            $cols[] = $metColVenda;
+            $vals[] = $idMet;
+        }
+        $cols[] = 'JUROS_APLICADO';
+        $vals[] = $juros;
         if($hasParc){ $cols[]='NUMERO_PARCELAS'; $vals[]=$parcelas; }
         if($hasVenc){ $cols[]='DATA_VENCIMENTO_PARCELA'; $vals[]=$dataVenc; }
         if($hasForma){ $cols[]='FORMA_PAGAMENTO'; $vals[]=$parcelas>1?'PARCELADO':'À VISTA'; }
@@ -193,7 +205,7 @@ if($idMet && $idCond){
            FROM CONDICAO_PAGAMENTO c
            LEFT JOIN JUROS_METODO_CONDICAO j
              ON j.ID_CONDICAO = c.ID
-            AND j.ID_METODO_PAGAMENTO = ?
+            AND j.{$metColJuros} = ?
           WHERE c.ID = ?"
     );
     $st->execute([$idMet, $idCond]);
