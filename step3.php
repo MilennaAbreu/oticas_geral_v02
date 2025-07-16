@@ -136,7 +136,16 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $stmtEstoque->execute([$it['QUANTIDADE'],$it['ID_PRODUTO']]);
         }
 
-        $stmtPag = $pdo->prepare("INSERT INTO VENDAS_PAGAMENTOS (ID_VENDA, ID_METODO_PAGAMENTO, VALOR) VALUES (?,?,?)");
+        $colMetodoPg = 'ID_METODO_PAGAMENTO';
+        if(!columnExists($pdo,'VENDAS_PAGAMENTOS',$colMetodoPg)){
+            foreach(['ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $alt){
+                if(columnExists($pdo,'VENDAS_PAGAMENTOS',$alt)){
+                    $colMetodoPg = $alt;
+                    break;
+                }
+            }
+        }
+        $stmtPag = $pdo->prepare("INSERT INTO VENDAS_PAGAMENTOS (ID_VENDA, {$colMetodoPg}, VALOR) VALUES (?,?,?)");
         foreach($pagamentos as $pg){
             $stmtPag->execute([$idVenda,$pg['metodo_id'],$pg['valor']]);
         }
