@@ -136,16 +136,22 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $stmtEstoque->execute([$it['QUANTIDADE'],$it['ID_PRODUTO']]);
         }
 
+        $tablePag = tableExists($pdo,'VENDAS_PAGAMENTOS')
+            ? 'VENDAS_PAGAMENTOS'
+            : (tableExists($pdo,'VENDAS_PAGAMENTO') ? 'VENDAS_PAGAMENTO' : null);
+        if(!$tablePag){
+            throw new Exception('Tabela de pagamento não encontrada');
+        }
         $colMetodoPg = 'ID_METODO_PAGAMENTO';
-        if(!columnExists($pdo,'VENDAS_PAGAMENTOS',$colMetodoPg)){
+        if(!columnExists($pdo,$tablePag,$colMetodoPg)){
             foreach(['ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $alt){
-                if(columnExists($pdo,'VENDAS_PAGAMENTOS',$alt)){
+                if(columnExists($pdo,$tablePag,$alt)){
                     $colMetodoPg = $alt;
                     break;
                 }
             }
         }
-        $stmtPag = $pdo->prepare("INSERT INTO VENDAS_PAGAMENTOS (ID_VENDA, {$colMetodoPg}, VALOR) VALUES (?,?,?)");
+        $stmtPag = $pdo->prepare("INSERT INTO {$tablePag} (ID_VENDA, {$colMetodoPg}, VALOR) VALUES (?,?,?)");
         foreach($pagamentos as $pg){
             $stmtPag->execute([$idVenda,$pg['metodo_id'],$pg['valor']]);
         }

@@ -34,4 +34,15 @@ function columnExists(PDO $pdo, string $table, string $column): bool {
         return false;
     }
 }
+
+// Helper to verify table existence
+function tableExists(PDO $pdo, string $table): bool {
+    try {
+        $stmt = $pdo->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$table]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ? true : false;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
 ?>
