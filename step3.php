@@ -213,7 +213,7 @@ include 'header.php';
       <label class="block mb-1">Pagamentos</label>
       <div id="pagamentos" class="space-y-2"></div>
       <button type="button" id="addPagamento" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
-      <div id="pgTemplate" class="hidden">
+      <template id="pgTemplate">
         <div class="pagamento flex items-center gap-2 bg-gray-100 p-2 rounded">
           <select name="formas_pagamento[]" class="border p-2 rounded w-56">
             <option value="">Selecione</option>
@@ -224,7 +224,7 @@ include 'header.php';
           <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32">
           <button type="button" class="removePagamento text-red-600 px-2">Remover</button>
         </div>
-      </div>
+      </template>
     </div>
     <div>
       <label class="block mb-1">Frete</label>
@@ -293,11 +293,17 @@ include 'header.php';
   </form>
 <script>
 const pagamentosDiv=document.getElementById('pagamentos');
-const template=document.getElementById('pgTemplate').firstElementChild;
+const template=document.getElementById('pgTemplate').content.firstElementChild;
+function formatValor(inp){
+  const v=parseFloat(inp.value.replace(',', '.'));
+  if(!isNaN(v)) inp.value=v.toFixed(2).replace('.', ',');
+}
 function addPagamento(){
   const clone=template.cloneNode(true);
   clone.querySelector('.removePagamento').addEventListener('click',()=>{clone.remove();fetchJuros();});
   clone.querySelector('select').addEventListener('change',fetchJuros);
+  const val=clone.querySelector('input[name="valores_pagamento[]"]');
+  val.addEventListener('blur',()=>formatValor(val));
   pagamentosDiv.appendChild(clone);
   if(window.jQuery&&jQuery.fn.select2){
     jQuery(clone).find('select').select2({width:'100%'});
@@ -325,7 +331,10 @@ function calcTot(){
   document.getElementById('vLiquido').textContent=liquido.toFixed(2);
 }
 function validatePagamentos(){
-  const valores=[...document.querySelectorAll('[name="valores_pagamento[]"]')].map(i=>parseFloat(i.value.replace(',', '.'))||0);
+  const valores=[...document.querySelectorAll('[name="valores_pagamento[]"]')].map(i=>{
+    formatValor(i);
+    return parseFloat(i.value.replace(',', '.'))||0;
+  });
   const soma=valores.reduce((a,b)=>a+b,0);
   const total=parseFloat(document.getElementById('vTotal').textContent.replace(',', '.'))||0;
   if(Math.abs(soma-total)>0.01){
