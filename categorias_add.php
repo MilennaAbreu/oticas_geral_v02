@@ -2,9 +2,9 @@
 include 'db.php';
 $nome = $_POST['nome'] ?? '';
 if ($nome) {
-    $stmt = $pdo->prepare("INSERT INTO CATEGORIAS (NOME) VALUES (?)");
+    $stmt = $pdo->prepare("INSERT INTO CATEGORIA_PRODUTO (NOME) VALUES (?)");
     $stmt->execute([$nome]);
-    echo json_encode(['success' => true]);
+    echo json_encode(['success' => true, 'id' => $pdo->lastInsertId(), 'nome' => $nome]);
 } else {
     echo json_encode(['success' => false]);
 }

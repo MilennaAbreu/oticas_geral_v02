@@ -1,11 +1,17 @@
 <?php
-session_start();
-// Configurações de conexão com o banco Hostinger
-define('DB_HOST', '212.85.3.45');
-define('DB_PORT', '3306');
-define('DB_USER', 'u820180255_admin');
-define('DB_PASS', 'd@VuM4&e8W');
-define('DB_NAME', 'u820180255_controleoticas');
+// Inicia sessão apenas se ainda não houver uma ativa
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Define constantes de conexão apenas uma vez
+if (!defined('DB_HOST')) {
+    define('DB_HOST', '212.85.3.45');
+    define('DB_PORT', '3306');
+    define('DB_USER', 'u820180255_admin');
+    define('DB_PASS', 'd@VuM4&e8W');
+    define('DB_NAME', 'u820180255_controleoticas');
+}
 
 try {
     $pdo = new PDO(
@@ -16,5 +22,16 @@ try {
     );
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
+}
+
+// Helper to verify column existence, avoiding errors on older schemas
+function columnExists(PDO $pdo, string $table, string $column): bool {
+    try {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM `".$table."` LIKE ?");
+        $stmt->execute([$column]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ? true : false;
+    } catch (PDOException $e) {
+        return false;
+    }
 }
 ?>

@@ -1,6 +1,7 @@
 <?php
-require 'config.php';
-require 'auth.php';
+require_once 'config.php';
+require_once 'auth.php';
+require_once 'permissions.php';
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -28,7 +29,7 @@ require 'auth.php';
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
-    .sidebar { background-color: #f8f9fa; width: 4rem; transition: width .3s; }
+    .sidebar { background-color: #f8f9fa; width: 4rem; transition: width .3s; min-height: 100vh; }
     .sidebar.expanded { width: 12rem; }
     .sidebar:not(.expanded) .label { display: none; }
     .menu-item { display: flex; align-items: center; padding: .75rem 1rem; color: #1F2937; cursor: pointer; transition: background .2s; }
@@ -38,6 +39,43 @@ require 'auth.php';
     input:focus, select:focus { border: none !important; border-bottom: 2px solid #8E070D !important; outline: none !important; box-shadow: none !important; }
     table thead { background-color: #8E070D !important; }
     table thead th { color: #ffffff !important; }
+    /* spacing and actions */
+    table.dataTable tbody td, table.dataTable thead th {
+      padding: 0.75rem 1rem !important;
+    }
+    .table-actions a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      transition: background-color .2s, color .2s, transform .2s;
+      margin-right: 0.25rem;
+    }
+    .table-actions a.edit { color: #2563eb; }
+    .table-actions a.delete { color: #dc2626; }
+    .table-actions a:hover {
+      color: #fff;
+      transform: scale(1.05);
+    }
+    .table-actions a.edit:hover { background-color: #2563eb; }
+    .table-actions a.delete:hover { background-color: #dc2626; }
+    form .form-group { margin-bottom: 1rem; }
+    form .form-control {
+      border: 1px solid #d1d5db; /* gray-300 */
+      padding: 0.75rem 1rem;
+      border-radius: 0.25rem;
+      width: 100%;
+    }
+    .add-btn { margin-bottom: 1rem; }
+    .dataTables_wrapper { margin-top: 0.75rem; }
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_paginate,
+    .dataTables_wrapper .dataTables_info {
+      margin: 0.5rem 0;
+    }
+    .status-select { padding:0.25rem 0.5rem; border-radius:0.25rem; }
   </style>
 </head>
 <body class="flex">
@@ -68,8 +106,8 @@ require 'auth.php';
           <li class="has-submenu">
             <div class="menu-item">Produtos</div>
             <ul class="submenu pl-6 space-y-1">
-              <li><a href="pecas_list.php" class="menu-item">Peças</a></li>
               <li><a href="produtos_list.php" class="menu-item">Produtos</a></li>
+              <li><a href="marcas_list.php" class="menu-item">Marcas</a></li>
               <li><a href="categorias_list.php" class="menu-item">Categorias</a></li>
               <li><a href="tipo_produtos_list.php" class="menu-item">Tipo de Produtos</a></li>
             </ul>
@@ -87,6 +125,7 @@ require 'auth.php';
         <ul class="submenu pl-6 space-y-1">
           <li><a href="conserto_list.php" class="menu-item">Consertos</a></li>
           <li><a href="vendas_list.php" class="menu-item">Vendas</a></li>
+          <li><a href="fidelidade_list.php" class="menu-item">Fidelidade Cliente</a></li>
           <li><a href="encaminhamento_list.php" class="menu-item">Encaminhamentos</a></li>
         </ul>
       </li>
@@ -116,5 +155,9 @@ require 'auth.php';
         </ul>
       </li>
     </ul>
+    <a href="logout.php" class="menu-item mt-auto">
+      <i class="fas fa-sign-out-alt w-6 h-6" style="color:#8E070D;"></i>
+      <span class="label ml-3">Logout</span>
+    </a>
   </div>
   <div class="main ml-16 transition-all duration-300 p-6">

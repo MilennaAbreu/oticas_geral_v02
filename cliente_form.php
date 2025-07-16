@@ -1,6 +1,6 @@
 <?php
-$pageTitle = 'Cliente Form';
-include 'header.php';
+require_once 'config.php';
+require_once 'auth.php';
 $id = $_GET['id'] ?? null;
 $nome = $cpf = $nascimento = $cep = $rua = $bairro = $contato = $status = '';
 $id_cidade = '';
@@ -22,7 +22,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $stmt->execute([$nome,$cpf,$nascimento,$cep,$rua,$bairro,$id_cidade,$contato,$status]);
         $id = $pdo->lastInsertId();
     }
-    header('Location: cliente_list.php'); exit();
+    header('Location: cliente_list.php');
+    exit();
 }
 if($id){
     $stmt = $pdo->prepare("SELECT nome,cpf,DATE_FORMAT(data_nascimento,'%Y-%m-%d') as nascimento,cep,rua,bairro,id_cidade,contato,status FROM CLIENTE WHERE id=?");
@@ -35,28 +36,61 @@ if($id){
     }
 }
 $cidades = $pdo->query("SELECT id, CONCAT(nome,'/',uf) as nome FROM CIDADE ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
+$pageTitle = $id ? 'Editar Cliente' : 'Novo Cliente';
+include 'header.php';
 ?>
-<h2><?= $id?'Editar':'Novo' ?> Cliente</h2>
-<form id="clienteForm" method="post">
-    <label>Nome</label><input class="border-b-2 border-gray-300 px-3 py-2 w-full" type="text" name="nome" value="<?= htmlspecialchars($nome) ?>" required>
-    <label>CPF</label><input class="border-b-2 border-gray-300 px-3 py-2 w-full" type="text" id="cpf" name="cpf" value="<?= htmlspecialchars($cpf) ?>" required>
-    <label>Data Nascimento</label><input class="border-b-2 border-gray-300 px-3 py-2 w-full" type="date" name="nascimento" value="<?= $nascimento ?>">
-    <label>CEP</label><input class="border-b-2 border-gray-300 px-3 py-2 w-full" type="text" id="cep" name="cep" value="<?= htmlspecialchars($cep) ?>" required>
-    <label>Rua</label><input class="border-b-2 border-gray-300 px-3 py-2 w-full" type="text" name="rua" value="<?= htmlspecialchars($rua) ?>">
-    <label>Bairro</label><input class="border-b-2 border-gray-300 px-3 py-2 w-full" type="text" name="bairro" value="<?= htmlspecialchars($bairro) ?>">
-    <label>Cidade</label><select class="border-b-2 border-gray-300 px-3 py-2 w-full" id="cidade" name="id_cidade" required>
+<div class="container mx-auto">
+<h2 class="text-2xl font-semibold mb-4"><?= $id?'Editar':'Novo' ?> Cliente</h2>
+<form id="clienteForm" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="form-group">
+        <label class="block mb-1">Nome</label>
+        <input class="form-control" type="text" name="nome" value="<?= htmlspecialchars($nome) ?>" required>
+    </div>
+    <div class="form-group">
+        <label class="block mb-1">CPF</label>
+        <input class="form-control" type="text" id="cpf" name="cpf" value="<?= htmlspecialchars($cpf) ?>" required>
+    </div>
+    <div class="form-group">
+        <label class="block mb-1">Data Nascimento</label>
+        <input class="form-control" type="date" name="nascimento" value="<?= $nascimento ?>">
+    </div>
+    <div class="form-group">
+        <label class="block mb-1">CEP</label>
+        <input class="form-control" type="text" id="cep" name="cep" value="<?= htmlspecialchars($cep) ?>" required>
+    </div>
+    <div class="form-group">
+        <label class="block mb-1">Rua</label>
+        <input class="form-control" type="text" name="rua" value="<?= htmlspecialchars($rua) ?>">
+    </div>
+    <div class="form-group">
+        <label class="block mb-1">Bairro</label>
+        <input class="form-control" type="text" name="bairro" value="<?= htmlspecialchars($bairro) ?>">
+    </div>
+    <div class="form-group">
+        <label class="block mb-1">Cidade</label>
+        <select class="form-control" id="cidade" name="id_cidade" required>
         <option value="">Selecione cidade</option>
         <?php foreach($cidades as $ci): ?>
         <option value="<?= $ci['id'] ?>" <?= $ci['id']==$id_cidade?'selected':'' ?>><?= htmlspecialchars($ci['nome']) ?></option>
         <?php endforeach; ?>
-    </select>
-    <label>Contato</label><input class="border-b-2 border-gray-300 px-3 py-2 w-full" type="text" name="contato" value="<?= htmlspecialchars($contato) ?>">
-    <label>Status</label><select class="border-b-2 border-gray-300 px-3 py-2 w-full" name="status">
-        <option value="ATIVO" <?= $status=='ATIVO'?'selected':'' ?>>Ativo</option>
-        <option value="INATIVA" <?= $status=='INATIVA'?'selected':'' ?>>Inativo</option>
-    </select>
-    <button class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" type="submit">Salvar</button>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="block mb-1">Contato</label>
+        <input class="form-control" type="text" name="contato" value="<?= htmlspecialchars($contato) ?>">
+    </div>
+    <div class="form-group">
+        <label class="block mb-1">Status</label>
+        <select class="form-control" name="status">
+            <option value="ATIVO" <?= $status=='ATIVO'?'selected':'' ?>>Ativo</option>
+            <option value="INATIVA" <?= $status=='INATIVA'?'selected':'' ?>>Inativo</option>
+        </select>
+    </div>
+    <div class="md:col-span-2">
+        <button class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition" type="submit">Salvar</button>
+    </div>
 </form>
+</div>
 <script>
 $(document).ready(function(){
     $('#cidade').select2({width:'100%'});

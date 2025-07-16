@@ -2,7 +2,7 @@
 $pageTitle = 'Empresas';
 include 'header.php';
 $permissoes = $_SESSION['permissoes'];
-$canDelete = strpos($permissoes,'ADMINISTRADOR')!==false||strpos($permissoes,'DIRETOR')!==false||strpos($permissoes,'ADMINISTRATIVO')!==false;
+$canDelete = hasRole('ADMINISTRADOR','DIRETORIA','ADMINISTRATIVO');
 $stmt = $pdo->query("SELECT id,nome,endereco,telefone FROM EMPRESA");
 $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -20,10 +20,10 @@ $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <td><?= htmlspecialchars($e['nome']) ?></td>
         <td><?= htmlspecialchars($e['endereco']) ?></td>
         <td><?= htmlspecialchars($e['telefone']) ?></td>
-        <td>
-          <a href="empresa_form.php?id=<?= $e['id'] ?>" class="text-accent hover:underline">Editar</a>
+        <td class="table-actions">
+          <a href="empresa_form.php?id=<?= $e['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
           <?php if($canDelete): ?>
-            <a href="empresa_delete.php?id=<?= $e['id'] ?>" onclick="return confirm('Excluir?');" class="text-red-600 hover:underline ml-2">Deletar</a>
+            <a href="empresa_delete.php?id=<?= $e['id'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
           <?php endif; ?>
         </td>
       </tr>
