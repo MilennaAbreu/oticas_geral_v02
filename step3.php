@@ -211,18 +211,18 @@ include 'header.php';
     </div>
     <div class="md:col-span-2">
       <label class="block mb-1">Pagamentos</label>
-      <div id="pagamentos"></div>
+      <div id="pagamentos" class="space-y-2"></div>
       <button type="button" id="addPagamento" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
       <div id="pgTemplate" class="hidden">
-        <div class="pagamento flex items-center mt-2">
-          <select name="formas_pagamento[]" class="border p-2 rounded mr-2">
+        <div class="pagamento flex items-center gap-2 bg-gray-100 p-2 rounded">
+          <select name="formas_pagamento[]" class="border p-2 rounded w-56">
             <option value="">Selecione</option>
             <?php foreach($metodos as $m): ?>
               <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
             <?php endforeach; ?>
           </select>
-          <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 mr-2">
-          <button type="button" class="removePagamento text-red-600">Remover</button>
+          <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32">
+          <button type="button" class="removePagamento text-red-600 px-2">Remover</button>
         </div>
       </div>
     </div>
@@ -299,6 +299,9 @@ function addPagamento(){
   clone.querySelector('.removePagamento').addEventListener('click',()=>{clone.remove();fetchJuros();});
   clone.querySelector('select').addEventListener('change',fetchJuros);
   pagamentosDiv.appendChild(clone);
+  if(window.jQuery&&jQuery.fn.select2){
+    jQuery(clone).find('select').select2({width:'100%'});
+  }
 }
 function fetchJuros(){
   const first=pagamentosDiv.querySelector('select[name="formas_pagamento[]"]');
