@@ -15,7 +15,9 @@ if($cRow) $cliente = $cRow;
 
 // valores default dos campos
 $idCond  = $_POST['id_condicao_pagamento'] ?? '';
-$idMet   = $_POST['id_metodo_pagamento'] ?? '';
+$formasPag   = $_POST['formas_pagamento'] ?? [];
+$valoresPag  = $_POST['valores_pagamento'] ?? [];
+$idMet   = $formasPag[0] ?? '';
 $idFrete = $_POST['id_frete'] ?? '';
 $dataEntrega = $_POST['data_entrega'] ?? '';
 $telContato    = $_POST['telefone_contato'] ?? $cliente['CONTATO'];
@@ -71,6 +73,25 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
     $valorLiquidoCalc = $valorTotal * (1 - $juros/100);
 
+    $pagamentos = [];
+    foreach($formasPag as $i => $metId){
+        $val = $valoresPag[$i] ?? '';
+        if(!$metId || $val===''){
+            $error = 'Informe método e valor para todos os pagamentos';
+            break;
+        }
+        $pagamentos[] = [
+            'metodo_id' => $metId,
+            'valor' => (float)str_replace(',', '.', $val)
+        ];
+    }
+    $somaPag = array_sum(array_column($pagamentos,'valor'));
+    if(empty($error) && round($somaPag,2) != round($valorTotal,2)){
+        $error = 'A soma dos pagamentos deve ser igual ao Valor Total';
+    }
+
+    if(empty($error)){
+
     $pdo->beginTransaction();
     try {
         $hasLiquido  = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
@@ -114,6 +135,11 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $stmtItem->execute([$idVenda,$it['ID_PRODUTO'],$it['QUANTIDADE'],$it['VALOR_UNITARIO'],$it['DESCONTO']]);
             $stmtEstoque->execute([$it['QUANTIDADE'],$it['ID_PRODUTO']]);
         }
+
+        $stmtPag = $pdo->prepare("INSERT INTO VENDAS_PAGAMENTOS (ID_VENDA, ID_METODO_PAGAMENTO, VALOR) VALUES (?,?,?)");
+        foreach($pagamentos as $pg){
+            $stmtPag->execute([$idVenda,$pg['metodo_id'],$pg['valor']]);
+        }
         $pdo->commit();
         unset($_SESSION['venda']);
         header('Location: vendas_list.php');
@@ -122,6 +148,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $pdo->rollBack();
         $error = 'Erro ao salvar venda: ' . $e->getMessage();
     }
+}
 }
 
 if(isset($_POST['voltar'])){
@@ -182,14 +209,22 @@ include 'header.php';
         <?php endforeach; ?>
       </select>
     </div>
-    <div>
-      <label class="block mb-1">Método de Pagamento</label>
-      <select name="id_metodo_pagamento" class="border p-2 w-full rounded" required>
-        <option value="">Selecione</option>
-        <?php foreach($metodos as $m): ?>
-          <option value="<?= $m['ID'] ?>" <?= $idMet==$m['ID']?'selected':'' ?>><?= htmlspecialchars($m['NOME']) ?></option>
-        <?php endforeach; ?>
-      </select>
+    <div class="md:col-span-2">
+      <label class="block mb-1">Pagamentos</label>
+      <div id="pagamentos"></div>
+      <button type="button" id="addPagamento" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
+      <div id="pgTemplate" class="hidden">
+        <div class="pagamento flex items-center mt-2">
+          <select name="formas_pagamento[]" class="border p-2 rounded mr-2">
+            <option value="">Selecione</option>
+            <?php foreach($metodos as $m): ?>
+              <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 mr-2">
+          <button type="button" class="removePagamento text-red-600">Remover</button>
+        </div>
+      </div>
     </div>
     <div>
       <label class="block mb-1">Frete</label>
@@ -256,23 +291,29 @@ include 'header.php';
   <a href="cancelar_venda.php" class="ml-3 text-red-600">Cancelar</a>
     </div>
   </form>
-</div>
 <script>
+const pagamentosDiv=document.getElementById('pagamentos');
+const template=document.getElementById('pgTemplate').firstElementChild;
+function addPagamento(){
+  const clone=template.cloneNode(true);
+  clone.querySelector('.removePagamento').addEventListener('click',()=>{clone.remove();fetchJuros();});
+  clone.querySelector('select').addEventListener('change',fetchJuros);
+  pagamentosDiv.appendChild(clone);
+}
 function fetchJuros(){
-  const met=document.querySelector('[name=id_metodo_pagamento]').value;
+  const first=pagamentosDiv.querySelector('select[name="formas_pagamento[]"]');
+  const met=first?first.value:'';
   const cond=document.querySelector('[name=id_condicao_pagamento]').value;
   if(!met||!cond){document.getElementById('vJuros').textContent='0';calcTot();return;}
   fetch(`get_juros.php?met=${met}&cond=${cond}`)
     .then(r=>r.json()).then(d=>{document.getElementById('vJuros').textContent=d.juros||0;calcTot();});
 }
 function calcTot(){
-  const bruto=parseFloat(document.getElementById('vVenda').textContent.replace(',','.'))||0;
+  const bruto=parseFloat(document.getElementById('vVenda').textContent.replace(',', '.'))||0;
   const descItens=parseFloat(document.getElementById('vDescItens').textContent.replace(',', '.'))||0;
-  const input=document.querySelector('[name=desconto_geral]');
-  const descGeral=parseFloat(input.value.replace(',', '.'))||0;
+  const descGeral=parseFloat(document.querySelector('[name=desconto_geral]').value.replace(',', '.'))||0;
   document.getElementById('vDescGeral').textContent=descGeral.toFixed(2);
-  const freteSel=document.querySelector('[name=id_frete]');
-  const frete=parseFloat(freteSel.selectedOptions[0].dataset.valor||0);
+  const frete=parseFloat(document.querySelector('[name=id_frete]').selectedOptions[0].dataset.valor||0);
   const juros=parseFloat(document.getElementById('vJuros').textContent)||0;
   document.getElementById('vFrete').textContent=frete.toFixed(2);
   let total=bruto-descItens-descGeral+frete;
@@ -280,10 +321,22 @@ function calcTot(){
   let liquido=total*(1-juros/100);
   document.getElementById('vLiquido').textContent=liquido.toFixed(2);
 }
-document.querySelector('[name=id_metodo_pagamento]').addEventListener('change',fetchJuros);
+function validatePagamentos(){
+  const valores=[...document.querySelectorAll('[name="valores_pagamento[]"]')].map(i=>parseFloat(i.value.replace(',', '.'))||0);
+  const soma=valores.reduce((a,b)=>a+b,0);
+  const total=parseFloat(document.getElementById('vTotal').textContent.replace(',', '.'))||0;
+  if(Math.abs(soma-total)>0.01){
+    alert('A soma dos pagamentos deve ser igual ao Valor Total');
+    return false;
+  }
+  return true;
+}
+document.getElementById('addPagamento').addEventListener('click',addPagamento);
 document.querySelector('[name=id_condicao_pagamento]').addEventListener('change',fetchJuros);
 document.querySelector('[name=desconto_geral]').addEventListener('input',calcTot);
-document.addEventListener('DOMContentLoaded',fetchJuros);
+document.getElementById('formStep3').addEventListener('submit',e=>{if(!validatePagamentos()) e.preventDefault();});
+document.addEventListener('DOMContentLoaded',()=>{addPagamento();fetchJuros();});
 </script>
+</div>
 <?php include 'footer.php'; ?>
 
