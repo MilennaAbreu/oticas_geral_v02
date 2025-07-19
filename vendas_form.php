@@ -125,7 +125,7 @@ include 'header.php';
     </div>
     <div>
       <label class="block mb-1">Telefone Contato</label>
-      <input type="text" name="telefone_contato" value="<?= htmlspecialchars($sale['TELEFONE_CONTATO']) ?>" class="border p-2 w-full rounded">
+      <input type="text" name="telefone_contato" value="<?= htmlspecialchars($sale['TELEFONE_CONTATO']) ?>" class="border p-2 w-full rounded" data-mask="telefone">
     </div>
     <div>
       <label class="block mb-1">Responsável Contato</label>

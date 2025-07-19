@@ -17,6 +17,7 @@ if($cRow) $cliente = $cRow;
 $idCond  = $_POST['id_condicao_pagamento'] ?? '';
 $formasPag   = $_POST['formas_pagamento'] ?? [];
 $valoresPag  = $_POST['valores_pagamento'] ?? [];
+$parcelasPag = $_POST['parcelas_pagamento'] ?? [];
 $idMet   = $formasPag[0] ?? '';
 
 // detect possible column names for metodo de pagamento nas tabelas
@@ -86,13 +87,15 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $pagamentos = [];
     foreach($formasPag as $i => $metId){
         $val = $valoresPag[$i] ?? '';
+        $par = $parcelasPag[$i] ?? '1';
         if(!$metId || $val===''){
             $error = 'Informe método e valor para todos os pagamentos';
             break;
         }
         $pagamentos[] = [
             'metodo_id' => $metId,
-            'valor' => (float)str_replace(',', '.', $val)
+            'valor' => (float)str_replace(',', '.', $val),
+            'parcelas' => (int)$par ?: 1
         ];
     }
     $somaPag = array_sum(array_column($pagamentos,'valor'));
@@ -163,9 +166,30 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
                 }
             }
         }
-        $stmtPag = $pdo->prepare("INSERT INTO {$tablePag} (ID_VENDA, {$colMetodoPg}, VALOR) VALUES (?,?,?)");
+        $hasParcPg = columnExists($pdo,$tablePag,'PARCELAS');
+        $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR" . ($hasParcPg? ', PARCELAS':'');
+        $placePg = $hasParcPg ? '?,?,?,?' : '?,?,?';
+        $stmtPag = $pdo->prepare("INSERT INTO {$tablePag} ($colsPg) VALUES ($placePg)");
         foreach($pagamentos as $pg){
-            $stmtPag->execute([$idVenda,$pg['metodo_id'],$pg['valor']]);
+            $valsPg = [$idVenda,$pg['metodo_id'],$pg['valor']];
+            if($hasParcPg) $valsPg[] = $pg['parcelas'];
+            $stmtPag->execute($valsPg);
+        }
+
+        if(tableExists($pdo,'CONTAS_A_RECEBER')){
+            $stmtRec = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
+            $parcelasMapa = [];
+            foreach($pagamentos as $pg){
+                $qt = max(1,$pg['parcelas']);
+                $vp = round($pg['valor']/$qt,2);
+                for($i=0;$i<$qt;$i++){
+                    $parcelasMapa[$i] = ($parcelasMapa[$i]??0) + $vp;
+                }
+            }
+            foreach($parcelasMapa as $i=>$valP){
+                $venc = date('Y-m-d', strtotime("$dataVenc +{$i} month"));
+                $stmtRec->execute([$idVenda,$_SESSION['venda']['ID_CLIENTE'],$valP,$venc,'PENDENTE',$_SESSION['venda']['ID_EMPRESA']]);
+            }
         }
         $pdo->commit();
         unset($_SESSION['venda']);
@@ -248,7 +272,8 @@ include 'header.php';
               <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
             <?php endforeach; ?>
           </select>
-          <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32">
+          <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 money" data-mask="money">
+          <input type="number" name="parcelas_pagamento[]" value="1" min="1" class="border p-2 rounded w-20">
           <button type="button" class="removePagamento text-red-600 px-2">Remover</button>
         </div>
       </template>
@@ -268,7 +293,7 @@ include 'header.php';
     </div>
     <div>
       <label class="block mb-1">Telefone Contato</label>
-      <input type="text" name="telefone_contato" value="<?= htmlspecialchars($telContato) ?>" class="border p-2 w-full rounded">
+      <input type="text" name="telefone_contato" value="<?= htmlspecialchars($telContato) ?>" class="border p-2 w-full rounded" data-mask="telefone">
     </div>
     <div>
       <label class="block mb-1">Responsável Contato</label>
@@ -337,6 +362,9 @@ function addPagamento(){
   clone.querySelector('select').addEventListener('change',fetchJuros);
   const val=clone.querySelector('input[name="valores_pagamento[]"]');
   val.addEventListener('blur',()=>formatValor(val));
+  if(window.jQuery&&jQuery.fn.mask){
+    jQuery(val).mask('#.##0,00',{reverse:true});
+  }
   pagamentosDiv.appendChild(clone);
   if(window.jQuery&&jQuery.fn.select2){
     jQuery(clone).find('select').select2({width:'100%'});
@@ -368,10 +396,15 @@ function validatePagamentos(){
     formatValor(i);
     return parseFloat(i.value.replace(',', '.'))||0;
   });
+  const parcelas=[...document.querySelectorAll('[name="parcelas_pagamento[]"]')].map(i=>parseInt(i.value)||1);
   const soma=valores.reduce((a,b)=>a+b,0);
   const total=parseFloat(document.getElementById('vTotal').textContent.replace(',', '.'))||0;
   if(Math.abs(soma-total)>0.01){
     alert('A soma dos pagamentos deve ser igual ao Valor Total');
+    return false;
+  }
+  if(parcelas.some(p=>p<1)){
+    alert('Quantidade de parcelas inválida');
     return false;
   }
   return true;

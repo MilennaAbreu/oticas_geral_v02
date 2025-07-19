@@ -48,7 +48,7 @@ include 'header.php';
     </div>
     <div class="form-group">
         <label class="block mb-1">CPF</label>
-        <input class="form-control" type="text" id="cpf" name="cpf" value="<?= htmlspecialchars($cpf) ?>" required>
+        <input class="form-control" type="text" id="cpf" name="cpf" value="<?= htmlspecialchars($cpf) ?>" required data-mask="cpf">
     </div>
     <div class="form-group">
         <label class="block mb-1">Data Nascimento</label>
@@ -77,7 +77,7 @@ include 'header.php';
     </div>
     <div class="form-group">
         <label class="block mb-1">Contato</label>
-        <input class="form-control" type="text" name="contato" value="<?= htmlspecialchars($contato) ?>">
+        <input class="form-control" type="text" name="contato" value="<?= htmlspecialchars($contato) ?>" data-mask="telefone">
     </div>
     <div class="form-group">
         <label class="block mb-1">Status</label>

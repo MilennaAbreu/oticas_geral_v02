@@ -1,6 +1,7 @@
   <!-- DataTables, Select2 & Mask JS -->
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
   <script>
       document.addEventListener('DOMContentLoaded', function() {
         var sidebar = document.getElementById('sidebar');
@@ -32,6 +33,10 @@
           });
         });
         $('select').select2({ width: '100%' });
+        $('input[name*=cpf],input[id*=cpf]').mask('000.000.000-00');
+        $('input[name*=cnpj],input[id*=cnpj]').mask('00.000.000/0000-00');
+        $('input[name*=telefone],input[name*=contato]').mask('(00)0.0000-0000');
+        $('input.money,input[name*=valor]').mask('#.##0,00', {reverse:true});
         $('table.display').DataTable({
           responsive: true,
           language: {

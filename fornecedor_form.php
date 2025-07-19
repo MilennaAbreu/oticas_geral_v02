@@ -41,11 +41,11 @@ include 'header.php';
     </div>
     <div class="form-group">
         <label class="block mb-1">CNPJ</label>
-        <input class="form-control" type="text" id="cnpj" name="cnpj" value="<?=$cnpj?>" required>
+        <input class="form-control" type="text" id="cnpj" name="cnpj" value="<?=$cnpj?>" required data-mask="cnpj">
     </div>
     <div class="form-group">
         <label class="block mb-1">Contato</label>
-        <input class="form-control" type="text" name="contato" value="<?=htmlspecialchars($contato)?>">
+        <input class="form-control" type="text" name="contato" value="<?=htmlspecialchars($contato)?>" data-mask="telefone">
     </div>
     <div class="form-group">
         <label class="block mb-1">CEP</label>

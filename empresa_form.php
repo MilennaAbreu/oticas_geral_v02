@@ -58,7 +58,7 @@ include 'header.php';
         </div>
         <div>
             <label class="block mb-1">CNPJ</label>
-            <input type="text" name="cnpj" id="cnpj" value="<?= htmlspecialchars($cnpj) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full">
+            <input type="text" name="cnpj" id="cnpj" value="<?= htmlspecialchars($cnpj) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full" data-mask="cnpj">
         </div>
         <div>
             <label class="block mb-1">CEP</label>
@@ -79,7 +79,7 @@ include 'header.php';
         </div>
         <div>
             <label class="block mb-1">Telefone</label>
-            <input type="text" name="telefone" value="<?= htmlspecialchars($telefone) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
+            <input type="text" name="telefone" value="<?= htmlspecialchars($telefone) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full" data-mask="telefone">
         </div>
         <div>
             <label class="block mb-1">Status</label>
