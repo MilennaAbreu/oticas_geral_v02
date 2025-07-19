@@ -15,35 +15,44 @@ $perfis = ['ADMINISTRADOR','DIRETORIA','ADMINISTRATIVO','VENDEDOR'];
 
 // Handle submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = $_POST['nome'];
-    $username = $_POST['username'];
-    $passInput = $_POST['password'] ?? '';
-    $hashed = $passInput !== '' ? password_hash($passInput, PASSWORD_DEFAULT) : null;
-    $permissoes = $_POST['permissoes'];
+    $nome       = $_POST['nome'] ?? '';
+    $username   = $_POST['username'] ?? '';
+    $passInput  = $_POST['password'] ?? '';
+    $hashed     = $passInput !== '' ? password_hash($passInput, PASSWORD_DEFAULT) : null;
+    $permissoes = $_POST['permissoes'] ?? '';
     $empresas_selected = $_POST['empresas'] ?? [];
 
     if(hasRole('DIRETORIA') && $permissoes === 'ADMINISTRADOR'){
         $error = 'Diretoria não pode atribuir perfil ADMINISTRADOR';
-    } elseif ($id) {
-        if ($hashed) {
-            $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, senha=?, permissoes=? WHERE id=?");
-            $stmt->execute([$nome, $username, $hashed, $permissoes, $id]);
-        } else {
-            $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, permissoes=? WHERE id=?");
-            $stmt->execute([$nome, $username, $permissoes, $id]);
-        }
-        $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE USUARIO_ID=?")->execute([$id]);
     } else {
-        $stmt = $pdo->prepare("INSERT INTO USUARIO (nome, username, senha, permissoes) VALUES (?,?,?,?)");
-        $stmt->execute([$nome, $username, $hashed, $permissoes]);
-        $id = $pdo->lastInsertId();
-    }
+        try {
+            if ($id) {
+                if ($hashed) {
+                    $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, senha=?, permissoes=? WHERE id=?");
+                    $stmt->execute([$nome, $username, $hashed, $permissoes, $id]);
+                } else {
+                    $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, permissoes=? WHERE id=?");
+                    $stmt->execute([$nome, $username, $permissoes, $id]);
+                }
+                $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE USUARIO_ID=?")->execute([$id]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO USUARIO (nome, username, senha, permissoes) VALUES (?,?,?,?)");
+                $stmt->execute([$nome, $username, $hashed, $permissoes]);
+                $id = $pdo->lastInsertId();
+            }
 
-    if (!$error) {
-        $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (USUARIO_ID, EMPRESA_ID) VALUES (?,?)");
-        foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
-        header('Location: user_list.php');
-        exit();
+            if (!$error) {
+                $ins = $pdo->prepare("INSERT INTO USUARIO_EMPRESA (USUARIO_ID, EMPRESA_ID) VALUES (?,?)");
+                foreach ($empresas_selected as $e) { $ins->execute([$id, $e]); }
+            }
+        } catch (PDOException $e) {
+            $error = 'Erro ao salvar usuário: ' . $e->getMessage();
+        }
+
+        if (!$error) {
+            header('Location: user_list.php');
+            exit();
+        }
     }
 }
 
