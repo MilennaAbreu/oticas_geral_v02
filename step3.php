@@ -327,7 +327,13 @@ function formatValor(inp){
 }
 function addPagamento(){
   const clone=template.cloneNode(true);
-  clone.querySelector('.removePagamento').addEventListener('click',()=>{clone.remove();fetchJuros();});
+  clone.querySelector('.removePagamento').addEventListener('click',()=>{
+    if(window.jQuery&&jQuery.fn.select2){
+      jQuery(clone).find('select').select2('destroy');
+    }
+    clone.remove();
+    fetchJuros();
+  });
   clone.querySelector('select').addEventListener('change',fetchJuros);
   const val=clone.querySelector('input[name="valores_pagamento[]"]');
   val.addEventListener('blur',()=>formatValor(val));
