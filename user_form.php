@@ -6,12 +6,16 @@ $id = $_GET['id'] ?? null;
 requireRole('ADMINISTRADOR','DIRETORIA');
 
 $nome = $username = $permissoes = '';
+$cpf = $nascimento = $admissao = '';
+$status = 'ATIVO';
+$cep = $rua = $bairro = $id_cidade = $contato = '';
 $error = '';
 $empresas_selected = [];
 
 // Fetch empresas and perfis
 $emps = $pdo->query("SELECT id, nome FROM EMPRESA ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
 $perfis = ['ADMINISTRADOR','DIRETORIA','ADMINISTRATIVO','VENDEDOR'];
+$cidades = $pdo->query("SELECT id, CONCAT(nome,'/',uf) AS nome FROM CIDADE ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
 
 // Handle submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -19,25 +23,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username   = $_POST['username'] ?? '';
     $passInput  = $_POST['password'] ?? '';
     $hashed     = $passInput !== '' ? password_hash($passInput, PASSWORD_DEFAULT) : null;
+    $cpf        = preg_replace('/\D/','', $_POST['cpf'] ?? '');
+    $nascimento = $_POST['nascimento'] ?? '';
+    $admissao   = $_POST['admissao'] ?? '';
     $permissoes = $_POST['permissoes'] ?? '';
+    $status     = $_POST['status'] ?? 'ATIVO';
+    $cep        = preg_replace('/\D/','', $_POST['cep'] ?? '');
+    $rua        = $_POST['rua'] ?? '';
+    $bairro     = $_POST['bairro'] ?? '';
+    $id_cidade  = $_POST['id_cidade'] ?? '';
+    $contato    = $_POST['contato'] ?? '';
     $empresas_selected = $_POST['empresas'] ?? [];
 
     if(hasRole('DIRETORIA') && $permissoes === 'ADMINISTRADOR'){
         $error = 'Diretoria não pode atribuir perfil ADMINISTRADOR';
     } else {
+        $dup = $pdo->prepare('SELECT id FROM USUARIO WHERE username=? AND id<>?');
+        $dup->execute([$username, $id ?? 0]);
+        if($dup->fetch()) $error = 'Login já utilizado por outro usuário';
+        if(!$error){
+            $dup = $pdo->prepare('SELECT id FROM USUARIO WHERE cpf=? AND id<>?');
+            $dup->execute([$cpf, $id ?? 0]);
+            if($dup->fetch()) $error = 'CPF já cadastrado para outro usuário';
+        }
         try {
             if ($id) {
                 if ($hashed) {
-                    $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, senha=?, permissoes=? WHERE id=?");
-                    $stmt->execute([$nome, $username, $hashed, $permissoes, $id]);
+                    $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, senha=?, cpf=?, data_nascimento=?, data_admissao=?, permissoes=?, status=?, cep=?, rua=?, bairro=?, id_cidade=?, contato=?, data_atualizacao=NOW() WHERE id=?");
+                    $stmt->execute([$nome,$username,$hashed,$cpf,$nascimento,$admissao,$permissoes,$status,$cep,$rua,$bairro,$id_cidade,$contato,$id]);
                 } else {
-                    $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, permissoes=? WHERE id=?");
-                    $stmt->execute([$nome, $username, $permissoes, $id]);
+                    $stmt = $pdo->prepare("UPDATE USUARIO SET nome=?, username=?, cpf=?, data_nascimento=?, data_admissao=?, permissoes=?, status=?, cep=?, rua=?, bairro=?, id_cidade=?, contato=?, data_atualizacao=NOW() WHERE id=?");
+                    $stmt->execute([$nome,$username,$cpf,$nascimento,$admissao,$permissoes,$status,$cep,$rua,$bairro,$id_cidade,$contato,$id]);
                 }
                 $pdo->prepare("DELETE FROM USUARIO_EMPRESA WHERE USUARIO_ID=?")->execute([$id]);
             } else {
-                $stmt = $pdo->prepare("INSERT INTO USUARIO (nome, username, senha, permissoes) VALUES (?,?,?,?)");
-                $stmt->execute([$nome, $username, $hashed, $permissoes]);
+                $stmt = $pdo->prepare("INSERT INTO USUARIO (nome, username, senha, cpf, data_nascimento, data_admissao, permissoes, status, cep, rua, bairro, id_cidade, contato, data_criacao) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())");
+                $stmt->execute([$nome,$username,$hashed,$cpf,$nascimento,$admissao,$permissoes,$status,$cep,$rua,$bairro,$id_cidade,$contato]);
                 $id = $pdo->lastInsertId();
             }
 
@@ -58,12 +79,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Load existing
 if ($id) {
-    $stmt = $pdo->prepare("SELECT nome, username, permissoes FROM USUARIO WHERE id=?");
+    $stmt = $pdo->prepare("SELECT nome, username, cpf, DATE_FORMAT(data_nascimento,'%Y-%m-%d') as nasc, DATE_FORMAT(data_admissao,'%Y-%m-%d') as adm, permissoes, status, cep, rua, bairro, id_cidade, contato FROM USUARIO WHERE id=?");
     $stmt->execute([$id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $nome = $row['nome'];
     $username = $row['username'];
+    $cpf = $row['cpf'];
+    $nascimento = $row['nasc'];
+    $admissao = $row['adm'];
     $permissoes = $row['permissoes'];
+    $status = $row['status'];
+    $cep = $row['cep'];
+    $rua = $row['rua'];
+    $bairro = $row['bairro'];
+    $id_cidade = $row['id_cidade'];
+    $contato = $row['contato'];
     $sel = $pdo->prepare("SELECT EMPRESA_ID FROM USUARIO_EMPRESA WHERE USUARIO_ID=?");
     $sel->execute([$id]);
     $empresas_selected = $sel->fetchAll(PDO::FETCH_COLUMN);
@@ -90,12 +120,56 @@ include 'header.php';
             <input type="password" name="password" <?= $id ? '' : 'required' ?> class="border-b-2 border-gray-300 px-3 py-2 w-full">
         </div>
         <div>
+            <label class="block mb-1">CPF</label>
+            <input type="text" name="cpf" value="<?= htmlspecialchars($cpf) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full" required>
+        </div>
+        <div>
+            <label class="block mb-1">Data Nascimento</label>
+            <input type="date" name="nascimento" value="<?= $nascimento ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
+        </div>
+        <div>
+            <label class="block mb-1">Data Admissão</label>
+            <input type="date" name="admissao" value="<?= $admissao ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
+        </div>
+        <div>
             <label class="block mb-1">Permissões</label>
             <select name="permissoes" class="border-b-2 border-gray-300 px-3 py-2 w-full" required>
                 <?php foreach ($perfis as $p): ?>
                 <option value="<?= $p ?>" <?= $p == $permissoes ? 'selected' : '' ?>><?= $p ?></option>
                 <?php endforeach; ?>
             </select>
+        </div>
+        <div>
+            <label class="block mb-1">Status</label>
+            <select name="status" class="border-b-2 border-gray-300 px-3 py-2 w-full">
+                <option value="ATIVO" <?= $status=='ATIVO'?'selected':'' ?>>Ativo</option>
+                <option value="INATIVO" <?= $status=='INATIVO'?'selected':'' ?>>Inativo</option>
+            </select>
+        </div>
+        <div>
+            <label class="block mb-1">CEP</label>
+            <input type="text" name="cep" value="<?= htmlspecialchars($cep) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full" required>
+        </div>
+        <div>
+            <label class="block mb-1">Rua</label>
+            <input type="text" name="rua" value="<?= htmlspecialchars($rua) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
+        </div>
+        <div>
+            <label class="block mb-1">Bairro</label>
+            <input type="text" name="bairro" value="<?= htmlspecialchars($bairro) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
+        </div>
+        <div>
+            <label class="block mb-1">Cidade</label>
+            <select name="id_cidade" id="cidade" class="border-b-2 border-gray-300 px-3 py-2 w-full" required>
+                <option value="">Selecione cidade</option>
+                <?php foreach($cidades as $c): ?>
+                <option value="<?= $c['id'] ?>" <?= $c['id']==$id_cidade?'selected':'' ?>><?= htmlspecialchars($c['nome']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div>
+            <label class="block mb-1">Contato</label>
+            <input type="text" name="contato" value="<?= htmlspecialchars($contato) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
         </div>
         <div>
             <label class="block mb-1">Empresas</label>
