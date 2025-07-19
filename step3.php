@@ -38,12 +38,26 @@ function distanciaKm($cep1,$cep2){
 }
 
 // valores default dos campos
-$condPag    = $_POST['condicoes_pagamento'] ?? [];
-$idCond  = $condPag[0] ?? "";
-$formasPag   = $_POST['formas_pagamento'] ?? [];
+$jurosSel   = $_POST['juros_metodo_condicao'] ?? [];
 $valoresPag  = $_POST['valores_pagamento'] ?? [];
 $parcelasPag = $_POST['parcelas_pagamento'] ?? [];
-$idMet   = $formasPag[0] ?? '';
+
+// dados de juros/metodo/condicao
+$jmcDados = $pdo->query(
+    "SELECT j.ID, j.ID_METODO_PAGAMENTO AS METODO_ID, j.ID_CONDICAO AS CONDICAO_ID, j.JUROS_MENSAL, c.PARCELAS, m.NOME AS METODO, c.NOME AS CONDICAO
+       FROM JUROS_METODO_CONDICAO j
+       JOIN METODO_PAGAMENTO m ON j.ID_METODO_PAGAMENTO=m.ID
+       JOIN CONDICAO_PAGAMENTO c ON j.ID_CONDICAO=c.ID
+     ORDER BY m.NOME,c.NOME"
+)->fetchAll(PDO::FETCH_ASSOC);
+$jmcMap = [];
+foreach($jmcDados as $j){
+    $jmcMap[$j['ID']] = $j;
+}
+
+$firstJmc = $jurosSel[0] ?? '';
+$idMet = isset($jmcMap[$firstJmc]) ? $jmcMap[$firstJmc]['METODO_ID'] : '';
+$idCond = isset($jmcMap[$firstJmc]) ? $jmcMap[$firstJmc]['CONDICAO_ID'] : '';
 
 // detect possible column names for metodo de pagamento nas tabelas
 $metColVenda = null;
@@ -101,25 +115,12 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
     $valorLiquidoCalc = 0;
     $parcelas = 1;
-    foreach($formasPag as $i => $metId){
-        $cond = $condPag[$i] ?? '';
+    foreach($jurosSel as $i => $jmcId){
         $val  = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
         $par  = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
         $jurosLinha = 0;
-        if($metId && $cond){
-            $st = $pdo->prepare(
-                "SELECT c.PARCELAS, j.JUROS_MENSAL
-                   FROM CONDICAO_PAGAMENTO c
-                   LEFT JOIN JUROS_METODO_CONDICAO j
-                     ON j.ID_CONDICAO = c.ID
-                    AND j.{$metColJuros} = ?
-                  WHERE c.ID = ?"
-            );
-            $st->execute([$metId,$cond]);
-            $rw = $st->fetch(PDO::FETCH_ASSOC);
-            if($rw){
-                $jurosLinha = (float)$rw['JUROS_MENSAL'] * $par;
-            }
+        if(isset($jmcMap[$jmcId])){
+            $jurosLinha = (float)$jmcMap[$jmcId]['JUROS_MENSAL'] * $par;
         }
         $parcelas = max($parcelas,$par);
         $valorLiquidoCalc += $val * (1 - $jurosLinha/100);
@@ -127,14 +128,15 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $juros = $valorTotal>0 ? (1 - $valorLiquidoCalc/$valorTotal)*100 : 0;
 
     $pagamentos = [];
-    foreach($formasPag as $i => $metId){
+    foreach($jurosSel as $i => $jmcId){
         $val = $valoresPag[$i] ?? '';
         $par = $parcelasPag[$i] ?? '1';
-        $cond = $condPag[$i] ?? '';
-        if(!$metId || $val===''){
+        if(!$jmcId || $val===''){
             $error = 'Informe método e valor para todos os pagamentos';
             break;
         }
+        $metId = isset($jmcMap[$jmcId]) ? $jmcMap[$jmcId]['METODO_ID'] : null;
+        $cond  = isset($jmcMap[$jmcId]) ? $jmcMap[$jmcId]['CONDICAO_ID'] : null;
         $pagamentos[] = [
             'metodo_id' => $metId,
             'condicao_id' => $cond,
@@ -251,8 +253,6 @@ if(isset($_POST['voltar'])){
     exit;
 }
 
-$condicoes = $pdo->query("SELECT ID, NOME FROM CONDICAO_PAGAMENTO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
-$metodos   = $pdo->query("SELECT ID, NOME FROM METODO_PAGAMENTO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $fretes    = $pdo->query("SELECT ID, DESCRICAO, VALOR FROM FRETE ORDER BY DESCRICAO")->fetchAll(PDO::FETCH_ASSOC);
 $cidades   = $pdo->query("SELECT ID, CONCAT(NOME,'/',UF) AS NOME FROM CIDADE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -275,25 +275,12 @@ $juros = 0;
 $parcelas = 1;
 $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
 $valorLiquidoCalc = 0;
-foreach($formasPag as $i=>$metId){
-    $cond = $condPag[$i] ?? '';
+foreach($jurosSel as $i=>$jmcId){
     $val  = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
     $par  = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
     $jurosLinha = 0;
-    if($metId && $cond){
-        $st = $pdo->prepare(
-            "SELECT c.PARCELAS, j.JUROS_MENSAL
-               FROM CONDICAO_PAGAMENTO c
-               LEFT JOIN JUROS_METODO_CONDICAO j
-                 ON j.ID_CONDICAO = c.ID
-                AND j.{$metColJuros} = ?
-              WHERE c.ID = ?"
-        );
-        $st->execute([$metId,$cond]);
-        $row = $st->fetch(PDO::FETCH_ASSOC);
-        if($row){
-            $jurosLinha = (float)$row['JUROS_MENSAL'] * $par;
-        }
+    if(isset($jmcMap[$jmcId])){
+        $jurosLinha = (float)$jmcMap[$jmcId]['JUROS_MENSAL'] * $par;
     }
     $parcelas = max($parcelas,$par);
     $valorLiquidoCalc += $val*(1 - $jurosLinha/100);
@@ -372,8 +359,7 @@ include 'header.php';
     <div class="md:col-span-2 mt-4 mb-8">
       <label class="block mb-1">Pagamentos</label>
       <div class="flex items-center gap-2 font-semibold mb-1">
-        <div class="w-56">Método</div>
-        <div class="w-40">Condição</div>
+        <div class="w-72">Método/Condição</div>
         <div class="w-32">Valor</div>
         <div class="w-20">Parcelas</div>
       </div>
@@ -382,16 +368,12 @@ include 'header.php';
       <button type="button" id="addPagamento" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
       <template id="pgTemplate">
         <div class="pagamento flex items-center gap-2 bg-gray-100 p-2 rounded">
-          <select name="formas_pagamento[]" class="border p-2 rounded w-56">
+          <select name="juros_metodo_condicao[]" class="border p-2 rounded w-72">
             <option value="">Selecione</option>
-            <?php foreach($metodos as $m): ?>
-              <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
-            <?php endforeach; ?>
-          </select>
-          <select name="condicoes_pagamento[]" class="border p-2 rounded w-40">
-            <option value="">Condição</option>
-            <?php foreach($condicoes as $c): ?>
-              <option value="<?= $c['ID'] ?>"><?= htmlspecialchars($c['NOME']) ?></option>
+            <?php foreach($jmcDados as $j): ?>
+              <option value="<?= $j['ID'] ?>" data-met="<?= $j['METODO_ID'] ?>" data-juros="<?= $j['JUROS_MENSAL'] ?>">
+                <?= htmlspecialchars($j['METODO'].' - '.$j['CONDICAO']) ?>
+              </option>
             <?php endforeach; ?>
           </select>
           <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 money" data-mask="money">
@@ -445,14 +427,12 @@ function addPagamento(){
 function fetchJuros(){
   const rows=[...pagamentosDiv.querySelectorAll('.pagamento')];
   const promises=rows.map(r=>{
-    const m=r.querySelector('select[name="formas_pagamento[]"]').value;
-    const c=r.querySelector('select[name="condicoes_pagamento[]"]').value;
+    const sel=r.querySelector('select[name="juros_metodo_condicao[]"]');
+    const juros=parseFloat(sel.selectedOptions[0]?.dataset.juros||'0');
     const v=parseFloat((r.querySelector('input[name="valores_pagamento[]"]').value||'').replace(',', '.'))||0;
     const p=parseInt(r.querySelector('input[name="parcelas_pagamento[]"]').value)||1;
-    if(!m||!c) return Promise.resolve(0);
-    return fetch(`get_juros.php?met=${m}&cond=${c}`)
-      .then(res=>res.json())
-      .then(d=> v*((parseFloat(d.juros)||0)*p/100));
+    if(!sel.value) return Promise.resolve(0);
+    return Promise.resolve(v*((juros||0)*p/100));
   });
   Promise.all(promises).then(vals=>{
     const jurosValor=vals.reduce((a,b)=>a+b,0);
@@ -504,7 +484,7 @@ function updatePagamentoTotal(){
 function validatePagamentos(){
   const valores=[...document.querySelectorAll("[name=valores_pagamento[]]")].map(i=>{formatValor(i);return parseFloat(i.value.replace(",", "."))||0;});
   const parcelas=[...document.querySelectorAll("[name=parcelas_pagamento[]]")].map(i=>parseInt(i.value)||1);
-  const conds=[...document.querySelectorAll("[name=condicoes_pagamento[]]")].map(i=>i.value);
+  const conds=[...document.querySelectorAll("[name=juros_metodo_condicao[]]")].map(i=>i.value);
   const soma=valores.reduce((a,b)=>a+b,0);
   const total=parseFloat(document.getElementById("vTotal").textContent.replace(",", "."))||0;
   if(Math.abs(soma-total)>0.01){
