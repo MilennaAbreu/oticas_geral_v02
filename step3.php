@@ -38,7 +38,8 @@ function distanciaKm($cep1,$cep2){
 }
 
 // valores default dos campos
-$idCond  = $_POST['id_condicao_pagamento'] ?? '';
+$condPag    = $_POST['condicoes_pagamento'] ?? [];
+$idCond  = $condPag[0] ?? "";
 $formasPag   = $_POST['formas_pagamento'] ?? [];
 $valoresPag  = $_POST['valores_pagamento'] ?? [];
 $parcelasPag = $_POST['parcelas_pagamento'] ?? [];
@@ -91,39 +92,53 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         }
     }
 
-    // juros aplicado conforme método e condição
-    $juros = 0;
-    $parcelas = 1;
-    if($idMet && $idCond){
-        $st = $pdo->prepare(
-            "SELECT c.PARCELAS, j.JUROS_MENSAL
-               FROM CONDICAO_PAGAMENTO c
-               LEFT JOIN JUROS_METODO_CONDICAO j
-                 ON j.ID_CONDICAO = c.ID
-                AND j.{$metColJuros} = ?
-              WHERE c.ID = ?"
-        );
-        $st->execute([$idMet, $idCond]);
-        $row = $st->fetch(PDO::FETCH_ASSOC);
-        if($row){
-            $parcelas = (int)$row['PARCELAS'];
-            $juros = (float)$row['JUROS_MENSAL'] * $parcelas;
-        }
+    // juros aplicado conforme cada método e condição
+    $valorTotal = 0; $valorDescItens = 0;
+    foreach($itens as $it){
+        $valorTotal += $it['QUANTIDADE'] * $it['VALOR_UNITARIO'];
+        $valorDescItens += $it['DESCONTO'];
     }
-
     $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
-    $valorLiquidoCalc = $valorTotal * (1 - $juros/100);
+    $valorLiquidoCalc = 0;
+    $parcelas = 1;
+    foreach($formasPag as $i => $metId){
+        $cond = $condPag[$i] ?? '';
+        $val  = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
+        $par  = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
+        $jurosLinha = 0;
+        if($metId && $cond){
+            $st = $pdo->prepare(
+                "SELECT c.PARCELAS, j.JUROS_MENSAL
+                   FROM CONDICAO_PAGAMENTO c
+                   LEFT JOIN JUROS_METODO_CONDICAO j
+                     ON j.ID_CONDICAO = c.ID
+                    AND j.{$metColJuros} = ?
+                  WHERE c.ID = ?"
+            );
+            $st->execute([$metId,$cond]);
+            $rw = $st->fetch(PDO::FETCH_ASSOC);
+            if($rw){
+                $jurosLinha = (float)$rw['JUROS_MENSAL'] * (int)$rw['PARCELAS'];
+                $par = max($par,(int)$rw['PARCELAS']);
+            }
+        }
+        $parcelas = max($parcelas,$par);
+        $valorLiquidoCalc += $val * (1 - $jurosLinha/100);
+    }
+    $juros = $valorTotal>0 ? (1 - $valorLiquidoCalc/$valorTotal)*100 : 0;
 
     $pagamentos = [];
     foreach($formasPag as $i => $metId){
         $val = $valoresPag[$i] ?? '';
         $par = $parcelasPag[$i] ?? '1';
+        $cond = $condPag[$i] ?? '';
         if(!$metId || $val===''){
             $error = 'Informe método e valor para todos os pagamentos';
             break;
         }
         $pagamentos[] = [
             'metodo_id' => $metId,
+            'condicao_id' => $cond,
             'valor' => (float)str_replace(',', '.', $val),
             'parcelas' => (int)$par ?: 1
         ];
@@ -258,24 +273,34 @@ if($idFrete){
     }
 }
 $juros = 0;
-if($idMet && $idCond){
-    $st = $pdo->prepare(
-        "SELECT c.PARCELAS, j.JUROS_MENSAL
-           FROM CONDICAO_PAGAMENTO c
-           LEFT JOIN JUROS_METODO_CONDICAO j
-             ON j.ID_CONDICAO = c.ID
-            AND j.{$metColJuros} = ?
-          WHERE c.ID = ?"
-    );
-    $st->execute([$idMet, $idCond]);
-    $row = $st->fetch(PDO::FETCH_ASSOC);
-    if($row){
-        $parc = (int)$row['PARCELAS'];
-        $juros = (float)$row['JUROS_MENSAL'] * $parc;
-    }
-}
+$parcelas = 1;
 $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
-$valorLiquidoCalc = $valorTotal * (1 - $juros/100);
+$valorLiquidoCalc = 0;
+foreach($formasPag as $i=>$metId){
+    $cond = $condPag[$i] ?? '';
+    $val  = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
+    $par  = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
+    $jurosLinha = 0;
+    if($metId && $cond){
+        $st = $pdo->prepare(
+            "SELECT c.PARCELAS, j.JUROS_MENSAL
+               FROM CONDICAO_PAGAMENTO c
+               LEFT JOIN JUROS_METODO_CONDICAO j
+                 ON j.ID_CONDICAO = c.ID
+                AND j.{$metColJuros} = ?
+              WHERE c.ID = ?"
+        );
+        $st->execute([$metId,$cond]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if($row){
+            $jurosLinha = (float)$row['JUROS_MENSAL'] * (int)$row['PARCELAS'];
+            $par = max($par,(int)$row['PARCELAS']);
+        }
+    }
+    $parcelas = max($parcelas,$par);
+    $valorLiquidoCalc += $val*(1 - $jurosLinha/100);
+}
+$juros = $valorTotal>0 ? (1 - $valorLiquidoCalc/$valorTotal)*100 : 0;
 
 $pageTitle = 'Pagamento';
 include 'header.php';
@@ -286,15 +311,6 @@ include 'header.php';
     <p class="text-red-600 mb-2"><?= htmlspecialchars($error) ?></p>
   <?php endif; ?>
   <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4" id="formStep3">
-    <div>
-      <label class="block mb-1">Condição de Pagamento</label>
-      <select name="id_condicao_pagamento" class="border p-2 w-full rounded" required>
-        <option value="">Selecione</option>
-        <?php foreach($condicoes as $c): ?>
-          <option value="<?= $c['ID'] ?>" <?= $idCond==$c['ID']?'selected':'' ?>><?= htmlspecialchars($c['NOME']) ?></option>
-        <?php endforeach; ?>
-      </select>
-    </div>
     <div class="md:col-span-2">
       <label class="block mb-1">Pagamentos</label>
       <div id="pagamentos" class="space-y-2"></div>
@@ -305,6 +321,12 @@ include 'header.php';
             <option value="">Selecione</option>
             <?php foreach($metodos as $m): ?>
               <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <select name="condicoes_pagamento[]" class="border p-2 rounded w-40">
+            <option value="">Condição</option>
+            <?php foreach($condicoes as $c): ?>
+              <option value="<?= $c['ID'] ?>"><?= htmlspecialchars($c['NOME']) ?></option>
             <?php endforeach; ?>
           </select>
           <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 money" data-mask="money">
@@ -397,7 +419,8 @@ function addPagamento(){
     clone.remove();
     fetchJuros();
   });
-  clone.querySelector('select').addEventListener('change',fetchJuros);
+  clone.querySelectorAll('select').forEach(sel=>sel.addEventListener('change',fetchJuros));
+  clone.querySelector('input[name="valores_pagamento[]"]').addEventListener('blur',fetchJuros);
   const val=clone.querySelector('input[name="valores_pagamento[]"]');
   val.addEventListener('blur',()=>formatValor(val));
   if(window.jQuery&&jQuery.fn.mask){
@@ -409,12 +432,23 @@ function addPagamento(){
   }
 }
 function fetchJuros(){
-  const first=pagamentosDiv.querySelector('select[name="formas_pagamento[]"]');
-  const met=first?first.value:'';
-  const cond=document.querySelector('[name=id_condicao_pagamento]').value;
-  if(!met||!cond){document.getElementById('vJuros').textContent='0';calcTot();return;}
-  fetch(`get_juros.php?met=${met}&cond=${cond}`)
-    .then(r=>r.json()).then(d=>{document.getElementById('vJuros').textContent=d.juros||0;calcTot();});
+  const rows=[...pagamentosDiv.querySelectorAll('.pagamento')];
+  const promises=rows.map(r=>{
+    const m=r.querySelector('select[name="formas_pagamento[]"]').value;
+    const c=r.querySelector('select[name="condicoes_pagamento[]"]').value;
+    const v=parseFloat((r.querySelector('input[name="valores_pagamento[]"]').value||'').replace(',', '.'))||0;
+    if(!m||!c) return Promise.resolve(0);
+    return fetch(`get_juros.php?met=${m}&cond=${c}`)
+      .then(res=>res.json())
+      .then(d=> v*((parseFloat(d.juros)||0)/100));
+  });
+  Promise.all(promises).then(vals=>{
+    const jurosValor=vals.reduce((a,b)=>a+b,0);
+    const tot=parseFloat(document.getElementById('vTotal').textContent.replace(',', '.'))||0;
+    const perc=tot? (jurosValor*100/tot) : 0;
+    document.getElementById('vJuros').textContent=perc.toFixed(2);
+    calcTot();
+  });
 }
 function updateFrete(){
   const cep=document.querySelector('[name=cep_entrega]').value.replace(/\D/g,'');
@@ -447,25 +481,22 @@ function calcTot(){
   document.getElementById('vLiquido').textContent=liquido.toFixed(2);
 }
 function validatePagamentos(){
-  const valores=[...document.querySelectorAll('[name="valores_pagamento[]"]')].map(i=>{
-    formatValor(i);
-    return parseFloat(i.value.replace(',', '.'))||0;
-  });
-  const parcelas=[...document.querySelectorAll('[name="parcelas_pagamento[]"]')].map(i=>parseInt(i.value)||1);
+  const valores=[...document.querySelectorAll("[name=valores_pagamento[]]")].map(i=>{formatValor(i);return parseFloat(i.value.replace(",", "."))||0;});
+  const parcelas=[...document.querySelectorAll("[name=parcelas_pagamento[]]")].map(i=>parseInt(i.value)||1);
+  const conds=[...document.querySelectorAll("[name=condicoes_pagamento[]]")].map(i=>i.value);
   const soma=valores.reduce((a,b)=>a+b,0);
-  const total=parseFloat(document.getElementById('vTotal').textContent.replace(',', '.'))||0;
+  const total=parseFloat(document.getElementById("vTotal").textContent.replace(",", "."))||0;
   if(Math.abs(soma-total)>0.01){
-    alert('A soma dos pagamentos deve ser igual ao Valor Total');
+    alert("A soma dos pagamentos deve ser igual ao Valor Total");
     return false;
   }
-  if(parcelas.some(p=>p<1)){
-    alert('Quantidade de parcelas inválida');
+  if(parcelas.some(p=>p<1) || conds.some(c=>!c)){
+    alert("Quantidade de parcelas ou condição inválida");
     return false;
   }
   return true;
 }
 document.getElementById('addPagamento').addEventListener('click',addPagamento);
-document.querySelector('[name=id_condicao_pagamento]').addEventListener('change',fetchJuros);
 document.querySelector('[name=desconto_geral]').addEventListener('input',calcTot);
 document.querySelector('[name=id_frete]').addEventListener('change',updateFrete);
 document.querySelector('[name=cep_entrega]').addEventListener('blur',updateFrete);
