@@ -118,8 +118,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $st->execute([$metId,$cond]);
             $rw = $st->fetch(PDO::FETCH_ASSOC);
             if($rw){
-                $jurosLinha = (float)$rw['JUROS_MENSAL'] * (int)$rw['PARCELAS'];
-                $par = max($par,(int)$rw['PARCELAS']);
+                $jurosLinha = (float)$rw['JUROS_MENSAL'] * $par;
             }
         }
         $parcelas = max($parcelas,$par);
@@ -293,8 +292,7 @@ foreach($formasPag as $i=>$metId){
         $st->execute([$metId,$cond]);
         $row = $st->fetch(PDO::FETCH_ASSOC);
         if($row){
-            $jurosLinha = (float)$row['JUROS_MENSAL'] * (int)$row['PARCELAS'];
-            $par = max($par,(int)$row['PARCELAS']);
+            $jurosLinha = (float)$row['JUROS_MENSAL'] * $par;
         }
     }
     $parcelas = max($parcelas,$par);
@@ -436,6 +434,8 @@ function addPagamento(){
   if(window.jQuery&&jQuery.fn.mask){
     jQuery(val).mask('#.##0,00',{reverse:true});
   }
+  const parcInput = clone.querySelector('input[name="parcelas_pagamento[]"]');
+  parcInput.addEventListener('change',fetchJuros);
   pagamentosDiv.appendChild(clone);
   if(window.jQuery&&jQuery.fn.select2){
     jQuery(clone).find('select').select2({width:'100%'});
@@ -448,10 +448,11 @@ function fetchJuros(){
     const m=r.querySelector('select[name="formas_pagamento[]"]').value;
     const c=r.querySelector('select[name="condicoes_pagamento[]"]').value;
     const v=parseFloat((r.querySelector('input[name="valores_pagamento[]"]').value||'').replace(',', '.'))||0;
+    const p=parseInt(r.querySelector('input[name="parcelas_pagamento[]"]').value)||1;
     if(!m||!c) return Promise.resolve(0);
     return fetch(`get_juros.php?met=${m}&cond=${c}`)
       .then(res=>res.json())
-      .then(d=> v*((parseFloat(d.juros)||0)/100));
+      .then(d=> v*((parseFloat(d.juros)||0)*p/100));
   });
   Promise.all(promises).then(vals=>{
     const jurosValor=vals.reduce((a,b)=>a+b,0);

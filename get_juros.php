@@ -18,7 +18,7 @@ if($met && $cond){
     $row = $st->fetch(PDO::FETCH_ASSOC);
     if($row){
         $parcelas = (int)$row['PARCELAS'];
-        $juros = (float)$row['JUROS_MENSAL'] * $parcelas;
+        $juros = (float)$row['JUROS_MENSAL'];
     }
 }
 header('Content-Type: application/json');
