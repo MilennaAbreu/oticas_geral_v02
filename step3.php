@@ -310,8 +310,7 @@ include 'header.php';
   <?php if(!empty($error)): ?>
     <p class="text-red-600 mb-2"><?= htmlspecialchars($error) ?></p>
   <?php endif; ?>
-  <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4" id="formStep3">
-    </div>
+  <form method="post" class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="formStep3">
     <div>
       <label class="block mb-1">Frete</label>
       <select name="id_frete" class="border p-2 w-full rounded" onchange="calcTot()">
@@ -372,7 +371,7 @@ include 'header.php';
       <p class="hidden">Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
       <p class="text-lg font-bold text-green-800">Valor Líquido: R$ <span id="vLiquido"><?= number_format($valorLiquidoCalc,2,',','.') ?></span></p>
     </div>
-    <div class="md:col-span-2 mt-4">
+    <div class="md:col-span-2 mt-4 mb-8">
       <label class="block mb-1">Pagamentos</label>
       <div class="flex items-center gap-2 font-semibold mb-1">
         <div class="w-56">Método</div>
