@@ -311,35 +311,6 @@ include 'header.php';
     <p class="text-red-600 mb-2"><?= htmlspecialchars($error) ?></p>
   <?php endif; ?>
   <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4" id="formStep3">
-    <div class="md:col-span-2">
-      <label class="block mb-1">Pagamentos</label>
-      <div class="flex items-center gap-2 font-semibold mb-1">
-        <div class="w-56">Método</div>
-        <div class="w-40">Condição</div>
-        <div class="w-32">Valor</div>
-        <div class="w-20">Parcelas</div>
-      </div>
-      <div id="pagamentos" class="space-y-2"></div>
-      <button type="button" id="addPagamento" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
-      <template id="pgTemplate">
-        <div class="pagamento flex items-center gap-2 bg-gray-100 p-2 rounded">
-          <select name="formas_pagamento[]" class="border p-2 rounded w-56">
-            <option value="">Selecione</option>
-            <?php foreach($metodos as $m): ?>
-              <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
-            <?php endforeach; ?>
-          </select>
-          <select name="condicoes_pagamento[]" class="border p-2 rounded w-40">
-            <option value="">Condição</option>
-            <?php foreach($condicoes as $c): ?>
-              <option value="<?= $c['ID'] ?>"><?= htmlspecialchars($c['NOME']) ?></option>
-            <?php endforeach; ?>
-          </select>
-          <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 money" data-mask="money">
-          <input type="number" name="parcelas_pagamento[]" value="1" min="1" class="border p-2 rounded w-20">
-          <button type="button" class="removePagamento text-red-600 px-2">Remover</button>
-        </div>
-      </template>
     </div>
     <div>
       <label class="block mb-1">Frete</label>
@@ -398,8 +369,39 @@ include 'header.php';
       <p>Distância: <span id="distanciaKm"><?= number_format($distanciaCalc,2,',','.') ?></span> km</p>
       <p>Frete: R$ <span id="vFrete"><?= number_format($freteValor,2,',','.') ?></span></p>
       <span id="vJuros" class="hidden"><?= number_format($juros,2,',','.') ?></span>
-      <p>Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
-      <p>Valor Líquido: R$ <span id="vLiquido"><?= number_format($valorLiquidoCalc,2,',','.') ?></span></p>
+      <p class="hidden">Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
+      <p class="text-lg font-bold text-green-800">Valor Líquido: R$ <span id="vLiquido"><?= number_format($valorLiquidoCalc,2,',','.') ?></span></p>
+    </div>
+    <div class="md:col-span-2 mt-4">
+      <label class="block mb-1">Pagamentos</label>
+      <div class="flex items-center gap-2 font-semibold mb-1">
+        <div class="w-56">Método</div>
+        <div class="w-40">Condição</div>
+        <div class="w-32">Valor</div>
+        <div class="w-20">Parcelas</div>
+      </div>
+      <div id="pagamentos" class="space-y-2"></div>
+      <div class="mt-2 text-right">Total pagamentos: R$ <span id="totPagamentos">0,00</span></div>
+      <button type="button" id="addPagamento" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
+      <template id="pgTemplate">
+        <div class="pagamento flex items-center gap-2 bg-gray-100 p-2 rounded">
+          <select name="formas_pagamento[]" class="border p-2 rounded w-56">
+            <option value="">Selecione</option>
+            <?php foreach($metodos as $m): ?>
+              <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <select name="condicoes_pagamento[]" class="border p-2 rounded w-40">
+            <option value="">Condição</option>
+            <?php foreach($condicoes as $c): ?>
+              <option value="<?= $c['ID'] ?>"><?= htmlspecialchars($c['NOME']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 money" data-mask="money">
+          <input type="number" name="parcelas_pagamento[]" value="1" min="1" class="border p-2 rounded w-20">
+          <button type="button" class="removePagamento text-red-600 px-2">Remover</button>
+        </div>
+      </template>
     </div>
     <div class="md:col-span-2">
       <button name="voltar" class="px-4 py-2 bg-gray-300 rounded mr-2">Voltar</button>
@@ -424,9 +426,12 @@ function addPagamento(){
     }
     clone.remove();
     fetchJuros();
+    updatePagamentoTotal();
   });
   clone.querySelectorAll('select').forEach(sel=>sel.addEventListener('change',fetchJuros));
-  clone.querySelector('input[name="valores_pagamento[]"]').addEventListener('blur',fetchJuros);
+  const valInput = clone.querySelector('input[name="valores_pagamento[]"]');
+  valInput.addEventListener('blur',fetchJuros);
+  valInput.addEventListener('input',updatePagamentoTotal);
   const val=clone.querySelector('input[name="valores_pagamento[]"]');
   val.addEventListener('blur',()=>formatValor(val));
   if(window.jQuery&&jQuery.fn.mask){
@@ -436,6 +441,7 @@ function addPagamento(){
   if(window.jQuery&&jQuery.fn.select2){
     jQuery(clone).find('select').select2({width:'100%'});
   }
+  updatePagamentoTotal();
 }
 function fetchJuros(){
   const rows=[...pagamentosDiv.querySelectorAll('.pagamento')];
@@ -454,6 +460,7 @@ function fetchJuros(){
     const perc=tot? (jurosValor*100/tot) : 0;
     document.getElementById('vJuros').textContent=perc.toFixed(2);
     calcTot();
+    updatePagamentoTotal();
   });
 }
 function updateFrete(){
@@ -486,6 +493,14 @@ function calcTot(){
   let liquido=total*(1-juros/100);
   document.getElementById('vLiquido').textContent=liquido.toFixed(2);
 }
+
+function updatePagamentoTotal(){
+  const vals=[...document.querySelectorAll('[name="valores_pagamento[]"]')]
+    .map(i=>parseFloat(i.value.replace(',', '.'))||0);
+  const soma=vals.reduce((a,b)=>a+b,0);
+  const span=document.getElementById('totPagamentos');
+  if(span) span.textContent=soma.toFixed(2).replace('.', ',');
+}
 function validatePagamentos(){
   const valores=[...document.querySelectorAll("[name=valores_pagamento[]]")].map(i=>{formatValor(i);return parseFloat(i.value.replace(",", "."))||0;});
   const parcelas=[...document.querySelectorAll("[name=parcelas_pagamento[]]")].map(i=>parseInt(i.value)||1);
@@ -507,7 +522,7 @@ document.querySelector('[name=desconto_geral]').addEventListener('input',calcTot
 document.querySelector('[name=id_frete]').addEventListener('change',updateFrete);
 document.querySelector('[name=cep_entrega]').addEventListener('blur',updateFrete);
 document.getElementById('formStep3').addEventListener('submit',e=>{if(!validatePagamentos()) e.preventDefault();});
-document.addEventListener('DOMContentLoaded',()=>{addPagamento();fetchJuros();updateFrete();});
+document.addEventListener('DOMContentLoaded',()=>{addPagamento();fetchJuros();updateFrete();updatePagamentoTotal();});
 </script>
 </div>
 <?php include 'footer.php'; ?>
