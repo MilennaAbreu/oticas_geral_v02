@@ -313,6 +313,12 @@ include 'header.php';
   <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4" id="formStep3">
     <div class="md:col-span-2">
       <label class="block mb-1">Pagamentos</label>
+      <div class="flex items-center gap-2 font-semibold mb-1">
+        <div class="w-56">Método</div>
+        <div class="w-40">Condição</div>
+        <div class="w-32">Valor</div>
+        <div class="w-20">Parcelas</div>
+      </div>
       <div id="pagamentos" class="space-y-2"></div>
       <button type="button" id="addPagamento" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
       <template id="pgTemplate">
