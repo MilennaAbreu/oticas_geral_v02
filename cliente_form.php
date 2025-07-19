@@ -95,7 +95,6 @@ include 'header.php';
 $(document).ready(function(){
     $('#cidade').select2({width:'100%'});
     $('#cpf').mask('000.000.000-00');
-    $('#cep').mask('00.000-000');
 });
 </script>
 <?php include 'footer.php'; ?>

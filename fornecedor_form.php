@@ -80,7 +80,7 @@ include 'header.php';
 </div>
 <script>
 $(document).ready(function(){
-    $('#cidade').select2({width:'100%'}); $('#cnpj').mask('00.000.000/0000-00'); $('#cep').mask('00.000-000');
+    $('#cidade').select2({width:'100%'}); $('#cnpj').mask('00.000.000/0000-00');
 });
 </script>
 <?php include 'footer.php'; ?>

@@ -37,6 +37,27 @@
         $('input[name*=cnpj],input[id*=cnpj]').mask('00.000.000/0000-00');
         $('input[name*=telefone],input[name*=contato]').mask('(00)0.0000-0000');
         $('input.money,input[name*=valor]').mask('#.##0,00', {reverse:true});
+        $('input[name*=cep],input[id*=cep]').mask('00.000-000').on('blur', function(){
+          var cep=this.value.replace(/\D/g,'');
+          if(cep.length!==8) return;
+          var form=this.form;
+          fetch('https://viacep.com.br/ws/'+cep+'/json/')
+            .then(r=>r.json())
+            .then(function(d){
+              if(d.erro) return;
+              if(form){
+                $(form).find('input[name=rua],input[name=rua_entrega],input[name=endereco]').val(d.logradouro || '');
+                $(form).find('input[name=bairro],input[name=bairro_entrega]').val(d.bairro || '');
+                fetch('busca_cidade.php?cidade='+encodeURIComponent(d.localidade)+'&uf='+d.uf)
+                  .then(r=>r.json())
+                  .then(function(c){
+                    if(c.id){
+                      $(form).find('select[name=id_cidade]').val(c.id).trigger('change');
+                    }
+                  });
+              }
+            });
+        });
         $('table.display').DataTable({
           responsive: true,
           language: {

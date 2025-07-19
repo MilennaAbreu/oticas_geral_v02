@@ -95,21 +95,8 @@ include 'header.php';
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const cepField = document.getElementById('cep');
-    const enderecoField = document.getElementById('endereco');
     $('#cidade').select2({ width: '100%' });
     $('#cnpj').mask('00.000.000/0000-00');
-    $('#cep').mask('00.000-000');
-    cepField.addEventListener('blur', function() {
-        const cep = this.value.replace(/\D/g, '');
-        if (cep.length === 8) {
-            fetch('https://viacep.com.br/ws/' + cep + '/json/')
-                .then(res => res.json())
-                .then(data => {
-                    if (!data.erro) enderecoField.value = data.logradouro + ', ' + data.bairro + ', ' + data.localidade + '/' + data.uf;
-                });
-        }
-    });
 });
 </script>
 <?php include 'footer.php'; ?>
