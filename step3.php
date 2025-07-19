@@ -13,6 +13,30 @@ $stmt->execute([$_SESSION['venda']['ID_CLIENTE']]);
 $cRow = $stmt->fetch(PDO::FETCH_ASSOC);
 if($cRow) $cliente = $cRow;
 
+// CEP da empresa para cálculo de distância
+$stmt = $pdo->prepare("SELECT CEP FROM EMPRESA WHERE ID=?");
+$stmt->execute([$_SESSION['venda']['ID_EMPRESA']]);
+$cepEmpresa = preg_replace('/\D/','', $stmt->fetchColumn() ?: '');
+
+function cepCoords($cep){
+    $resp = @file_get_contents("https://cep.awesomeapi.com.br/json/{$cep}");
+    if(!$resp) return null;
+    $data = json_decode($resp,true);
+    return (isset($data['lat']) && isset($data['lng'])) ? [(float)$data['lat'],(float)$data['lng']] : null;
+}
+
+function distanciaKm($cep1,$cep2){
+    $c1 = cepCoords($cep1); $c2 = cepCoords($cep2);
+    if(!$c1 || !$c2) return 0;
+    list($lat1,$lon1) = $c1; list($lat2,$lon2) = $c2;
+    $lat1 = deg2rad($lat1); $lat2 = deg2rad($lat2);
+    $lon1 = deg2rad($lon1); $lon2 = deg2rad($lon2);
+    $dlat = $lat2 - $lat1; $dlon = $lon2 - $lon1;
+    $a = sin($dlat/2)**2 + cos($lat1)*cos($lat2)*sin($dlon/2)**2;
+    $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+    return 6371 * $c;
+}
+
 // valores default dos campos
 $idCond  = $_POST['id_condicao_pagamento'] ?? '';
 $formasPag   = $_POST['formas_pagamento'] ?? [];
@@ -42,6 +66,7 @@ $dataVenc      = trim($_POST['data_vencimento'] ?? '');
 if(empty($dataVenc)){
     $dataVenc = date('Y-m-d');
 }
+$distanciaCalc = 0;
 
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $idFrete = $idFrete ?: null;
@@ -55,10 +80,15 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $valorDescItens  += $it['DESCONTO'];
     }
     $freteValor = 0;
+    $distanciaCalc = 0;
     if($idFrete){
         $st = $pdo->prepare("SELECT valor FROM FRETE WHERE id=?");
         $st->execute([$idFrete]);
-        $freteValor = (float)$st->fetchColumn();
+        $valorKm = (float)$st->fetchColumn();
+        if($cepEmpresa && $cepEntrega){
+            $distanciaCalc = distanciaKm($cepEmpresa, $cepEntrega);
+            $freteValor = $valorKm * $distanciaCalc;
+        }
     }
 
     // juros aplicado conforme método e condição
@@ -217,10 +247,15 @@ $valorVenda = 0; $valorDescItens=0; foreach($itens as $it){
     $valorDescItens += $it['DESCONTO'];
 }
 $freteValor = 0;
+$distanciaCalc = 0;
 if($idFrete){
     $st = $pdo->prepare("SELECT VALOR FROM FRETE WHERE ID=?");
     $st->execute([$idFrete]);
-    $freteValor = (float)$st->fetchColumn();
+    $valorKm = (float)$st->fetchColumn();
+    if($cepEmpresa && $cepEntrega){
+        $distanciaCalc = distanciaKm($cepEmpresa, preg_replace('/\D/','', $cepEntrega));
+        $freteValor = $valorKm * $distanciaCalc;
+    }
 }
 $juros = 0;
 if($idMet && $idCond){
@@ -332,6 +367,7 @@ include 'header.php';
       <p>Valor Bruto: R$ <span id="vVenda"><?= number_format($valorVenda,2,',','.') ?></span></p>
       <p>Desconto Itens: R$ <span id="vDescItens"><?= number_format($valorDescItens,2,',','.') ?></span></p>
       <p>Desconto Geral: R$ <span id="vDescGeral"><?= number_format($descGeral,2,',','.') ?></span></p>
+      <p>Distância: <span id="distanciaKm"><?= number_format($distanciaCalc,2,',','.') ?></span> km</p>
       <p>Frete: R$ <span id="vFrete"><?= number_format($freteValor,2,',','.') ?></span></p>
       <span id="vJuros" class="hidden"><?= number_format($juros,2,',','.') ?></span>
       <p>Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
@@ -344,6 +380,8 @@ include 'header.php';
     </div>
   </form>
 <script>
+const cepOrigem = '<?= $cepEmpresa ?>';
+let freteAtual = parseFloat("<?= number_format($freteValor,2,'.','.') ?>");
 const pagamentosDiv=document.getElementById('pagamentos');
 const template=document.getElementById('pgTemplate').content.firstElementChild;
 function formatValor(inp){
@@ -378,15 +416,32 @@ function fetchJuros(){
   fetch(`get_juros.php?met=${met}&cond=${cond}`)
     .then(r=>r.json()).then(d=>{document.getElementById('vJuros').textContent=d.juros||0;calcTot();});
 }
+function updateFrete(){
+  const cep=document.querySelector('[name=cep_entrega]').value.replace(/\D/g,'');
+  const sel=document.querySelector('[name=id_frete]');
+  const val=sel.selectedOptions[0].dataset.valor||0;
+  if(!sel.value||!cep||!cepOrigem){
+    freteAtual=0;
+    document.getElementById('distanciaKm').textContent='0';
+    calcTot();
+    return;
+  }
+  fetch(`calcula_distancia.php?orig=${cepOrigem}&dest=${cep}&valor=${val}`)
+    .then(r=>r.json())
+    .then(d=>{
+      freteAtual=d.valor?parseFloat(d.valor):0;
+      document.getElementById('distanciaKm').textContent=d.distancia?parseFloat(d.distancia).toFixed(2):'0';
+      calcTot();
+    });
+}
 function calcTot(){
   const bruto=parseFloat(document.getElementById('vVenda').textContent.replace(',', '.'))||0;
   const descItens=parseFloat(document.getElementById('vDescItens').textContent.replace(',', '.'))||0;
   const descGeral=parseFloat(document.querySelector('[name=desconto_geral]').value.replace(',', '.'))||0;
   document.getElementById('vDescGeral').textContent=descGeral.toFixed(2);
-  const frete=parseFloat(document.querySelector('[name=id_frete]').selectedOptions[0].dataset.valor||0);
   const juros=parseFloat(document.getElementById('vJuros').textContent)||0;
-  document.getElementById('vFrete').textContent=frete.toFixed(2);
-  let total=bruto-descItens-descGeral+frete;
+  document.getElementById('vFrete').textContent=freteAtual.toFixed(2);
+  let total=bruto-descItens-descGeral+freteAtual;
   document.getElementById('vTotal').textContent=total.toFixed(2);
   let liquido=total*(1-juros/100);
   document.getElementById('vLiquido').textContent=liquido.toFixed(2);
@@ -412,8 +467,10 @@ function validatePagamentos(){
 document.getElementById('addPagamento').addEventListener('click',addPagamento);
 document.querySelector('[name=id_condicao_pagamento]').addEventListener('change',fetchJuros);
 document.querySelector('[name=desconto_geral]').addEventListener('input',calcTot);
+document.querySelector('[name=id_frete]').addEventListener('change',updateFrete);
+document.querySelector('[name=cep_entrega]').addEventListener('blur',updateFrete);
 document.getElementById('formStep3').addEventListener('submit',e=>{if(!validatePagamentos()) e.preventDefault();});
-document.addEventListener('DOMContentLoaded',()=>{addPagamento();fetchJuros();});
+document.addEventListener('DOMContentLoaded',()=>{addPagamento();fetchJuros();updateFrete();});
 </script>
 </div>
 <?php include 'footer.php'; ?>
