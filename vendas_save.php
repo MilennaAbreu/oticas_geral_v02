@@ -146,9 +146,9 @@ try{
         }
     }
     if(tableExists($pdo,'FIDELIDADE_CLIENTE')){
-        $pts=floor($valor_total/500);
-        if($pts>0){
-            $stmtF=$pdo->prepare('INSERT INTO FIDELIDADE_CLIENTE (ID_CLIENTE,PONTOS,ULTIMA_ATUALIZACAO) VALUES (?,?,NOW()) ON DUPLICATE KEY UPDATE PONTOS=PONTOS+VALUES(PONTOS), ULTIMA_ATUALIZACAO=NOW()');
+        $pts = $valor_total >= 500 ? 100 : 0;
+        if($pts > 0){
+            $stmtF = $pdo->prepare('INSERT INTO FIDELIDADE_CLIENTE (ID_CLIENTE,PONTOS,ULTIMA_ATUALIZACAO) VALUES (?,?,NOW()) ON DUPLICATE KEY UPDATE PONTOS=PONTOS+VALUES(PONTOS), ULTIMA_ATUALIZACAO=NOW()');
             $stmtF->execute([$id_cliente,$pts]);
         }
     }
