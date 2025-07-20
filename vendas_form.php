@@ -31,6 +31,41 @@ if($id){
     $sale = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+$jmcDados = $pdo->query(
+    "SELECT j.ID, j.ID_METODO_PAGAMENTO AS METODO_ID, j.ID_CONDICAO AS CONDICAO_ID, m.NOME AS METODO, c.NOME AS CONDICAO
+       FROM JUROS_METODO_CONDICAO j
+       JOIN METODO_PAGAMENTO m ON j.ID_METODO_PAGAMENTO=m.ID
+       JOIN CONDICAO_PAGAMENTO c ON j.ID_CONDICAO=c.ID
+     ORDER BY m.NOME,c.NOME"
+)->fetchAll(PDO::FETCH_ASSOC);
+$jmcMap = [];
+foreach($jmcDados as $j){
+    $jmcMap[$j['METODO_ID'].'_'.$j['CONDICAO_ID']] = $j['ID'];
+}
+
+$pagamentos = [];
+if($id){
+    $tablePag = tableExists($pdo,'VENDAS_PAGAMENTOS')
+        ? 'VENDAS_PAGAMENTOS'
+        : (tableExists($pdo,'VENDAS_PAGAMENTO') ? 'VENDAS_PAGAMENTO' : null);
+    if($tablePag){
+        $colMet = 'ID_METODO_PAGAMENTO';
+        if(!columnExists($pdo,$tablePag,$colMet)){
+            foreach(['ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $c){
+                if(columnExists($pdo,$tablePag,$c)){ $colMet = $c; break; }
+            }
+        }
+        $hasParc = columnExists($pdo,$tablePag,'PARCELAS');
+        $sql = "SELECT {$colMet} AS METODO_ID, VALOR".($hasParc?", PARCELAS":"")." FROM {$tablePag} WHERE ID_VENDA=?";
+        $st = $pdo->prepare($sql);
+        $st->execute([$id]);
+        $pagamentos = $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+}
+if(!$pagamentos){
+    $pagamentos = [['METODO_ID'=>'','VALOR'=>'','PARCELAS'=>1]];
+}
+
 $clientes = $pdo->query("SELECT ID, CPF, NOME FROM CLIENTE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $usuarios = $pdo->query("SELECT ID, NOME FROM USUARIO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $condicoes = $pdo->query("SELECT ID, NOME FROM CONDICAO_PAGAMENTO ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
@@ -122,6 +157,32 @@ include 'header.php';
     <div>
       <label class="block mb-1">Valor Total</label>
       <input type="text" name="valor_total" value="<?= $sale['VALOR_TOTAL'] ?>" class="border p-2 w-full rounded" required>
+    </div>
+    <div class="md:col-span-2">
+      <label class="block mb-1">Pagamentos</label>
+      <div class="flex items-center gap-2 font-semibold mb-1">
+        <div class="w-72">Método/Condição</div>
+        <div class="w-32">Valor</div>
+        <div class="w-20">Parcelas</div>
+      </div>
+      <div id="pgList" class="space-y-2"></div>
+      <div class="mt-2 text-right">Total pagamentos: R$ <span id="totPg">0,00</span></div>
+      <button type="button" id="addPg" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
+      <template id="tplPg">
+        <div class="linha flex items-center gap-2 bg-gray-100 p-2 rounded">
+          <select name="juros_metodo_condicao[]" class="border p-2 rounded w-72">
+            <option value="">Selecione</option>
+            <?php foreach($jmcDados as $j): ?>
+              <option value="<?= $j['ID'] ?>" data-met="<?= $j['METODO_ID'] ?>" data-juros="<?= $j['JUROS_MENSAL'] ?? 0 ?>">
+                <?= htmlspecialchars($j['METODO'].' - '.$j['CONDICAO']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32" data-mask="money">
+          <input type="number" name="parcelas_pagamento[]" value="1" min="1" class="border p-2 rounded w-20">
+          <button type="button" class="rmPg text-red-600 px-2">Remover</button>
+        </div>
+      </template>
     </div>
     <div>
       <label class="block mb-1">Telefone Contato</label>
@@ -231,5 +292,32 @@ function saveCliente(){
     }
   });
 }
+
+const pgList=document.getElementById('pgList');
+const tpl=document.getElementById('tplPg').content.firstElementChild;
+function formatPgVal(i){const v=parseFloat(i.value.replace(',', '.'));if(!isNaN(v)) i.value=v.toFixed(2).replace('.', ',');}
+function addPg(met,valor,parc){
+  const c=tpl.cloneNode(true);
+  if(met) c.querySelector('select').value=met;
+  if(valor) {c.querySelector('[name="valores_pagamento[]"]').value=parseFloat(valor).toFixed(2).replace('.', ',');}
+  if(parc) c.querySelector('[name="parcelas_pagamento[]"]').value=parc;
+  c.querySelector('.rmPg').addEventListener('click',()=>{jQuery(c).find('select').select2('destroy');c.remove();updatePgTot();});
+  const val=c.querySelector('[name="valores_pagamento[]"]');
+  val.addEventListener('blur',()=>{formatPgVal(val);updatePgTot();});
+  if(window.jQuery&&jQuery.fn.mask){jQuery(val).mask('#.##0,00',{reverse:true});}
+  pgList.appendChild(c);
+  if(window.jQuery&&jQuery.fn.select2){jQuery(c).find('select').select2({width:'100%'});}
+  updatePgTot();
+}
+function updatePgTot(){
+  const soma=[...pgList.querySelectorAll('[name="valores_pagamento[]"]')].reduce((a,i)=>a+(parseFloat(i.value.replace(',', '.'))||0),0);
+  document.getElementById('totPg').textContent=soma.toFixed(2).replace('.', ',');
+}
+document.getElementById('addPg').addEventListener('click',()=>addPg());
+document.addEventListener('DOMContentLoaded',()=>{
+  <?php foreach($pagamentos as $p): $jmc = $jmcMap[$p['METODO_ID'].'_'.$sale['ID_CONDICAO_PAGAMENTO']] ?? ''; ?>
+    addPg('<?= $jmc ?>','<?= $p['VALOR'] ?>','<?= $p['PARCELAS'] ?? 1 ?>');
+  <?php endforeach; ?>
+});
 </script>
 <?php include 'footer.php'; ?>

@@ -191,10 +191,8 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             throw new Exception('falha ao inserir venda');
         }
         $stmtItem = $pdo->prepare("INSERT INTO ITENS_VENDA (ID_VENDA,ID_PRODUTO,QUANTIDADE,VALOR_UNITARIO,DESCONTO) VALUES (?,?,?,?,?)");
-        $stmtEstoque = $pdo->prepare("UPDATE PRODUTO SET ESTOQUE_ATUAL = ESTOQUE_ATUAL - ? WHERE ID = ?");
         foreach($itens as $it){
             $stmtItem->execute([$idVenda,$it['ID_PRODUTO'],$it['QUANTIDADE'],$it['VALOR_UNITARIO'],$it['DESCONTO']]);
-            $stmtEstoque->execute([$it['QUANTIDADE'],$it['ID_PRODUTO']]);
         }
 
         $tablePag = tableExists($pdo,'VENDAS_PAGAMENTOS')
