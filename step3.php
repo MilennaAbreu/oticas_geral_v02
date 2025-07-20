@@ -235,6 +235,13 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
                 $stmtRec->execute([$idVenda,$_SESSION['venda']['ID_CLIENTE'],$valP,$venc,'PENDENTE',$_SESSION['venda']['ID_EMPRESA']]);
             }
         }
+        if(tableExists($pdo,'FIDELIDADE_CLIENTE')){
+            $pts=floor($valorTotal/500);
+            if($pts>0){
+                $stmtF=$pdo->prepare('INSERT INTO FIDELIDADE_CLIENTE (ID_CLIENTE,PONTOS,ULTIMA_ATUALIZACAO) VALUES (?,?,NOW()) ON DUPLICATE KEY UPDATE PONTOS=PONTOS+VALUES(PONTOS), ULTIMA_ATUALIZACAO=NOW()');
+                $stmtF->execute([$_SESSION['venda']['ID_CLIENTE'],$pts]);
+            }
+        }
         $pdo->commit();
         unset($_SESSION['venda']);
         header('Location: vendas_list.php');
