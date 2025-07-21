@@ -58,6 +58,7 @@ foreach($jmcDados as $j){
 $firstJmc = $jurosSel[0] ?? '';
 $idMet = isset($jmcMap[$firstJmc]) ? $jmcMap[$firstJmc]['METODO_ID'] : '';
 $idCond = isset($jmcMap[$firstJmc]) ? $jmcMap[$firstJmc]['CONDICAO_ID'] : '';
+$dataVenda = $_SESSION['venda']['DATA_VENDA'] ?? date('Y-m-d');
 
 // detect possible column names for metodo de pagamento nas tabelas
 $metColVenda = null;
@@ -158,12 +159,17 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $hasParc     = columnExists($pdo,'VENDAS','NUMERO_PARCELAS');
         $hasVenc     = columnExists($pdo,'VENDAS','DATA_VENCIMENTO_PARCELA');
         $hasForma    = columnExists($pdo,'VENDAS','FORMA_PAGAMENTO');
+        $hasDataVenda= columnExists($pdo,'VENDAS','DATA_VENDA');
         $cols = ['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO'];
         $vals = [
             $_SESSION['venda']['ID_CLIENTE'],
             $_SESSION['venda']['ID_USUARIO'],
             $idCond
         ];
+        if($hasDataVenda){
+            $cols[]='DATA_VENDA';
+            $vals[]=$dataVenda;
+        }
         if($metColVenda){
             $cols[] = $metColVenda;
             $vals[] = $idMet;

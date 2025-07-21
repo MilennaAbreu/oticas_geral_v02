@@ -11,11 +11,13 @@ if(!$allowed){
 if($_SERVER['REQUEST_METHOD']==='POST'){
     $empresa = $_POST['id_empresa'] ?? null;
     $cliente = $_POST['id_cliente'] ?? null;
+    $dataVenda = $_POST['data_venda'] ?? date('Y-m-d');
     if($empresa && $cliente){
         $_SESSION['venda'] = [];
         $_SESSION['venda']['ID_EMPRESA'] = $empresa;
         $_SESSION['venda']['ID_CLIENTE'] = $cliente;
         $_SESSION['venda']['ID_USUARIO'] = $_SESSION['user'];
+        $_SESSION['venda']['DATA_VENDA'] = $dataVenda;
         header('Location: step2.php');
         exit;
     }
@@ -64,6 +66,10 @@ include 'header.php';
         </select>
         <button type="button" onclick="openModal('modalCliente')" class="ml-2 px-3 py-1 bg-gray-300 rounded">+</button>
       </div>
+    </div>
+    <div>
+      <label class="block mb-1">Data da Venda</label>
+      <input type="date" name="data_venda" value="<?= date('Y-m-d') ?>" class="border p-2 rounded w-full" required>
     </div>
     <div>
       <button class="bg-primary text-white px-4 py-2 rounded">Próximo</button>
