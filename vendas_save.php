@@ -47,7 +47,7 @@ $id_empresa  = $_POST['id_empresa'] ?? null;
 
 // monta pagamentos e calcula juros
 $pagamentos = [];
-$valor_liquido_calc = 0;
+$valor_liquido_calc = $valor_total;
 $parcelas = 1;
 foreach($jurosSel as $i=>$jmcId){
     $val = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
@@ -61,7 +61,7 @@ foreach($jurosSel as $i=>$jmcId){
         if($i==0){ $id_metodo = $dados['METODO_ID']; $id_condicao = $dados['CONDICAO_ID']; }
         $jurosLinha = (float)$dados['JUROS_MENSAL'] * $par;
     } else { $jurosLinha = 0; }
-    $valor_liquido_calc += $val * (1 - $jurosLinha/100);
+    $juros_valor = ($juros_valor ?? 0) + $val * ($jurosLinha/100);
     $parcelas = max($parcelas,$par);
     $pagamentos[] = ['metodo_id'=>$dados['METODO_ID'] ?? null,'valor'=>$val,'parcelas'=>$par];
 }
@@ -69,8 +69,8 @@ $somaPag = array_sum(array_column($pagamentos,'valor'));
 if(round($somaPag,2) != round($valor_total,2)){
     http_response_code(400); exit('Soma dos pagamentos difere do total');
 }
-$juros_aplicado = $valor_total>0 ? (1 - $valor_liquido_calc/$valor_total)*100 : 0;
-$valor_liquido = $valor_total * (1 - $juros_aplicado/100);
+$juros_aplicado = $valor_total>0 ? (($juros_valor ?? 0)/$valor_total)*100 : 0;
+$valor_liquido = $valor_total;
 
 $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
 $hasVencParc = columnExists($pdo,"VENDAS","DATA_VENCIMENTO_PARCELA");

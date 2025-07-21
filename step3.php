@@ -113,8 +113,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $valorDescItens += $it['DESCONTO'];
     }
     $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
-    $valorLiquidoCalc = 0;
+    $valorLiquidoCalc = $valorTotal;
     $parcelas = 1;
+    $jurosValor = 0;
     foreach($jurosSel as $i => $jmcId){
         $val  = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
         $par  = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
@@ -123,9 +124,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $jurosLinha = (float)$jmcMap[$jmcId]['JUROS_MENSAL'] * $par;
         }
         $parcelas = max($parcelas,$par);
-        $valorLiquidoCalc += $val * (1 - $jurosLinha/100);
+        $jurosValor += $val * ($jurosLinha/100);
     }
-    $juros = $valorTotal>0 ? (1 - $valorLiquidoCalc/$valorTotal)*100 : 0;
+    $juros = $valorTotal>0 ? ($jurosValor/$valorTotal)*100 : 0;
 
     $pagamentos = [];
     foreach($jurosSel as $i => $jmcId){
@@ -279,7 +280,8 @@ if($idFrete){
 $juros = 0;
 $parcelas = 1;
 $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
-$valorLiquidoCalc = 0;
+$valorLiquidoCalc = $valorTotal;
+$jurosValor = 0;
 foreach($jurosSel as $i=>$jmcId){
     $val  = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
     $par  = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
@@ -288,9 +290,9 @@ foreach($jurosSel as $i=>$jmcId){
         $jurosLinha = (float)$jmcMap[$jmcId]['JUROS_MENSAL'] * $par;
     }
     $parcelas = max($parcelas,$par);
-    $valorLiquidoCalc += $val*(1 - $jurosLinha/100);
+    $jurosValor += $val*($jurosLinha/100);
 }
-$juros = $valorTotal>0 ? (1 - $valorLiquidoCalc/$valorTotal)*100 : 0;
+$juros = $valorTotal>0 ? ($jurosValor/$valorTotal)*100 : 0;
 
 $pageTitle = 'Pagamento';
 include 'header.php';
@@ -471,11 +473,10 @@ function calcTot(){
   const descItens=parseFloat(document.getElementById('vDescItens').textContent.replace(',', '.'))||0;
   const descGeral=parseFloat(document.querySelector('[name=desconto_geral]').value.replace(',', '.'))||0;
   document.getElementById('vDescGeral').textContent=descGeral.toFixed(2);
-  const juros=parseFloat(document.getElementById('vJuros').textContent)||0;
   document.getElementById('vFrete').textContent=freteAtual.toFixed(2);
   let total=bruto-descItens-descGeral+freteAtual;
   document.getElementById('vTotal').textContent=total.toFixed(2);
-  let liquido=total*(1-juros/100);
+  const liquido=total;
   document.getElementById('vLiquido').textContent=liquido.toFixed(2);
 }
 
