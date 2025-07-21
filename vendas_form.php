@@ -11,6 +11,7 @@ $sale = [
     'ID_METODO_PAGAMENTO' => '',
     'ID_FRETE' => '',
     'DATA_ENTREGA' => '',
+    'DATA_VENDA' => '',
     'VALOR_VENDA' => '',
     'DESCONTO' => '0.00',
     'VALOR_TOTAL' => '',
@@ -145,6 +146,10 @@ include 'header.php';
     <div>
       <label class="block mb-1">Data Entrega</label>
       <input type="date" name="data_entrega" value="<?= $sale['DATA_ENTREGA'] ?>" class="border p-2 w-full rounded">
+    </div>
+    <div>
+      <label class="block mb-1">Data da Venda</label>
+      <input type="date" name="data_venda" value="<?= $sale['DATA_VENDA'] ?>" class="border p-2 w-full rounded">
     </div>
     <div>
       <label class="block mb-1">Valor Venda</label>

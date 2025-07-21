@@ -28,6 +28,7 @@ foreach($jmcDados as $j){
 }
 $id_frete    = $_POST['id_frete'] ?? null;
 $data_entrega = $_POST['data_entrega'] ?: null;
+$data_venda   = $_POST['data_venda'] ?: null;
 $data_vencimento = trim($_POST['data_vencimento'] ?? '');
 if(empty($data_vencimento)){
     $data_vencimento = date('Y-m-d');
@@ -73,6 +74,7 @@ $juros_aplicado = $valor_total>0 ? (($juros_valor ?? 0)/$valor_total)*100 : 0;
 $valor_liquido = $valor_total;
 
 $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
+$hasDataVenda = columnExists($pdo,'VENDAS','DATA_VENDA');
 $hasVencParc = columnExists($pdo,"VENDAS","DATA_VENCIMENTO_PARCELA");
 $hasParcelas = columnExists($pdo,"VENDAS","NUMERO_PARCELAS");
 $hasFormaPag = columnExists($pdo,"VENDAS","FORMA_PAGAMENTO");
@@ -80,6 +82,7 @@ $hasFormaPag = columnExists($pdo,"VENDAS","FORMA_PAGAMENTO");
 // monta dinamicamente colunas e valores
 $cols=['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO','ID_METODO_PAGAMENTO','JUROS_APLICADO'];
 $vals=[$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado];
+if($hasDataVenda){$cols[]='DATA_VENDA';$vals[]=$data_venda;}
 if($hasParcelas){$cols[]='NUMERO_PARCELAS';$vals[]=$parcelas;}
 if($hasVencParc){$cols[]='DATA_VENCIMENTO_PARCELA';$vals[]=$data_vencimento;}
 if($hasFormaPag){$cols[]='FORMA_PAGAMENTO';$vals[]=$parcelas>1?'PARCELADO':'À VISTA';}
