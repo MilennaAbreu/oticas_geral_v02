@@ -83,7 +83,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
             ]);
             $id = $pdo->lastInsertId();
             if($items){
-                $stmtI = $pdo->prepare("INSERT INTO CONCERTO_OCULOS_ITENS (ID_CONCERTO,ID_PRODUTO,QUANTIDADE) VALUES (?,?,?)");
+                $stmtI = $pdo->prepare("INSERT INTO CONSERTO_OCULOS_ITENS (ID_CONCERTO,ID_PRODUTO,QUANTIDADE) VALUES (?,?,?)");
                 foreach($items as $it){
                     $stmtI->execute([$id,$it['ID_PRODUTO'],$it['QUANTIDADE']]);
                 }
@@ -161,7 +161,7 @@ include 'header.php';
     </div>
     <div>
       <label class="block mb-1">Valor Hora</label>
-      <input type="number" step="any" name="valor_hora" value="<?= htmlspecialchars($valor_hora) ?>" class="border p-2 rounded w-full" oninput="calcTot()">
+      <input type="number" step="any" name="valor_hora" value="<?= htmlspecialchars($valor_hora) ?>" class="border p-2 rounded w-full" oninput="calcTot()" data-nomask="1">
     </div>
     <div>
       <label class="block mb-1">Desconto</label>

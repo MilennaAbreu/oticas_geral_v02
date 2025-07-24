@@ -23,8 +23,11 @@ if ($id && $status) {
                 $tablePag = tableExists($pdo,'VENDAS_PAGAMENTOS') ? 'VENDAS_PAGAMENTOS' : (tableExists($pdo,'VENDAS_PAGAMENTO') ? 'VENDAS_PAGAMENTO' : null);
                 if($tablePag){
                     $hasParc=columnExists($pdo,$tablePag,'PARCELAS');
-                    $hasVenc=columnExists($pdo,$tablePag,'DATA_VENC_PARCELA');
-                    $sql="SELECT VALOR".($hasParc?",PARCELAS":"").($hasVenc?",DATA_VENC_PARCELA":"")." FROM {$tablePag} WHERE ID_VENDA=?";
+                    $vencCol=null;
+                    if(columnExists($pdo,$tablePag,'DATA_VENC_PARCELA')) $vencCol='DATA_VENC_PARCELA';
+                    elseif(columnExists($pdo,$tablePag,'DATA_VENCIMENTO_PARCELA')) $vencCol='DATA_VENCIMENTO_PARCELA';
+                    $hasVenc=$vencCol!==null;
+                    $sql="SELECT VALOR".($hasParc?",PARCELAS":"").($hasVenc?",".$vencCol:"") ." FROM {$tablePag} WHERE ID_VENDA=?";
                     $sp=$pdo->prepare($sql);
                     $sp->execute([$id]);
                     $pags=$sp->fetchAll(PDO::FETCH_ASSOC);
@@ -32,7 +35,7 @@ if ($id && $status) {
                     foreach($pags as $pg){
                         $qt=max(1,$hasParc?($pg['PARCELAS']??1):1);
                         $vp=round($pg['VALOR']/$qt,2);
-                        $vencBase=$hasVenc?($pg['DATA_VENC_PARCELA']??date('Y-m-d')):date('Y-m-d');
+                        $vencBase=$hasVenc?($pg[$vencCol]??date('Y-m-d')):date('Y-m-d');
                         for($i=0;$i<$qt;$i++){
                             $venc=date('Y-m-d',strtotime($vencBase." +{$i} month"));
                             $stmtRec->execute([$id,$sale['ID_CLIENTE'],$vp,$venc,'PENDENTE',$sale['ID_EMPRESA']]);

@@ -119,11 +119,14 @@ try{
         }
     }
     $hasParcPg = columnExists($pdo,$tablePag,'PARCELAS');
-    $hasVencPg = columnExists($pdo,$tablePag,'DATA_VENC_PARCELA');
+    $vencCol = null;
+    if(columnExists($pdo,$tablePag,'DATA_VENC_PARCELA')) $vencCol='DATA_VENC_PARCELA';
+    elseif(columnExists($pdo,$tablePag,'DATA_VENCIMENTO_PARCELA')) $vencCol='DATA_VENCIMENTO_PARCELA';
+    $hasVencPg = $vencCol !== null;
     $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR";
     $placePg = '?,?,?';
     if($hasParcPg){ $colsPg .= ', PARCELAS'; $placePg .= ',?'; }
-    if($hasVencPg){ $colsPg .= ', DATA_VENC_PARCELA'; $placePg .= ',?'; }
+    if($hasVencPg){ $colsPg .= ', '.$vencCol; $placePg .= ',?'; }
     $stmtPg = $pdo->prepare("INSERT INTO {$tablePag} ($colsPg) VALUES ($placePg)");
     foreach($pagamentos as $pg){
         $valsPg = [$id,$pg['metodo_id'],$pg['valor']];

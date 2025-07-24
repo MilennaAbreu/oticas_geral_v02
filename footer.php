@@ -36,7 +36,7 @@
         $('input[name*=cpf],input[id*=cpf]').mask('000.000.000-00');
         $('input[name*=cnpj],input[id*=cnpj]').mask('00.000.000/0000-00');
         $('input[data-mask=telefone]').mask('(00)0.0000-0000');
-        $('input.money,input[name*=valor]').mask('#.##0,00', {reverse:true});
+        $('input.money,input[name*=valor]').not('[data-nomask]').mask('#.##0,00', {reverse:true});
         $('input[data-mask=percent],input[name*=juros]').mask('##0,00', {reverse:true});
         $('input[name*=cep],input[id*=cep]').mask('00.000-000').on('blur', function(){
           var cep=this.value.replace(/\D/g,'');

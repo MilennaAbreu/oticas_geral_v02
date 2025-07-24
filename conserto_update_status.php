@@ -14,19 +14,19 @@ try{
     if(!$old){ throw new Exception('Conserto não encontrado'); }
     $pdo->prepare("UPDATE CONCERTO_OCULOS SET SITUACAO=? WHERE ID=?")->execute([$status,$id]);
     if($old !== 'APROVADO' && $status === 'APROVADO'){
-        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONCERTO_OCULOS_ITENS WHERE ID_CONCERTO=?");
+        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONSERTO_OCULOS_ITENS WHERE ID_CONCERTO=?");
         $it->execute([$id]);
         foreach($it as $r){
             $pdo->prepare("UPDATE PRODUTO SET ESTOQUE_ATUAL=ESTOQUE_ATUAL-? WHERE ID=?")->execute([$r['QUANTIDADE'],$r['ID_PRODUTO']]);
         }
     }
     if($old === 'APROVADO' && $status !== 'APROVADO'){
-        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONCERTO_OCULOS_ITENS WHERE ID_CONCERTO=?");
+        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONSERTO_OCULOS_ITENS WHERE ID_CONCERTO=?");
         $it->execute([$id]);
         foreach($it as $r){
             $pdo->prepare("UPDATE PRODUTO SET ESTOQUE_ATUAL=ESTOQUE_ATUAL+? WHERE ID=?")->execute([$r['QUANTIDADE'],$r['ID_PRODUTO']]);
         }
-        $pdo->prepare("DELETE FROM CONCERTO_OCULOS_ITENS WHERE ID_CONCERTO=?")->execute([$id]);
+        $pdo->prepare("DELETE FROM CONSERTO_OCULOS_ITENS WHERE ID_CONCERTO=?")->execute([$id]);
     }
     $pdo->commit();
     echo json_encode(['success'=>true]);

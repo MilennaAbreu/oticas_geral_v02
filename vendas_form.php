@@ -57,10 +57,13 @@ if($id){
             }
         }
         $hasParc = columnExists($pdo,$tablePag,'PARCELAS');
-        $hasVenc = columnExists($pdo,$tablePag,'DATA_VENC_PARCELA');
+        $vencCol = null;
+        if(columnExists($pdo,$tablePag,'DATA_VENC_PARCELA')) $vencCol='DATA_VENC_PARCELA';
+        elseif(columnExists($pdo,$tablePag,'DATA_VENCIMENTO_PARCELA')) $vencCol='DATA_VENCIMENTO_PARCELA';
+        $hasVenc = $vencCol !== null;
         $sql = "SELECT {$colMet} AS METODO_ID, VALOR".
                ($hasParc?", PARCELAS":"").
-               ($hasVenc?", DATA_VENC_PARCELA":"").
+               ($hasVenc?", {$vencCol}":"").
                " FROM {$tablePag} WHERE ID_VENDA=?";
         $st = $pdo->prepare($sql);
         $st->execute([$id]);
