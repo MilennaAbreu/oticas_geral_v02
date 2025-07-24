@@ -125,7 +125,9 @@ document.addEventListener('DOMContentLoaded',function(){
 function saveSit(id){
   const sel=document.getElementById('sit_'+id);
   fetch('conserto_update_status.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`id=${id}&status=${encodeURIComponent(sel.value)}`})
-    .then(r=>r.json()).then(d=>{ if(d.success){ setColor(sel); alert('Status atualizado'); } else { alert('Erro: '+(d.error||'')); } });
+    .then(r=>r.json().catch(()=>{throw new Error('Resposta inválida do servidor');}))
+    .then(d=>{ if(d.success){ setColor(sel); alert('Status atualizado'); } else { alert('Erro: '+(d.error||'')); } })
+    .catch(err=>{ alert('Erro: '+err.message); });
 }
 function setColor(sel){
   sel.classList.remove('bg-green-100','bg-red-100','bg-blue-100','bg-yellow-100','text-green-800','text-red-800','text-blue-800','text-yellow-800');
