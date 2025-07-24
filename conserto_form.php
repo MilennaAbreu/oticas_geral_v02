@@ -86,7 +86,8 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
             $id = $pdo->lastInsertId();
             if($items){
                 $col = consertoItemColumn($pdo);
-                $stmtI = $pdo->prepare("INSERT INTO CONSERTO_OCULOS_ITENS (`$col`,ID_PRODUTO,QUANTIDADE) VALUES (?,?,?)");
+                $tbl = consertoItemTable($pdo);
+                $stmtI = $pdo->prepare("INSERT INTO `$tbl` (`$col`,ID_PRODUTO,QUANTIDADE) VALUES (?,?,?)");
                 foreach($items as $it){
                     $stmtI->execute([$id,$it['ID_PRODUTO'],$it['QUANTIDADE']]);
                 }

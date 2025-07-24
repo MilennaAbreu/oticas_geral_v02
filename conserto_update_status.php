@@ -15,7 +15,8 @@ try{
     $pdo->prepare("UPDATE CONCERTO_OCULOS SET SITUACAO=? WHERE ID=?")->execute([$status,$id]);
     if(!in_array($old,['APROVADO','ENTREGUE']) && $status === 'APROVADO'){
         $col = consertoItemColumn($pdo);
-        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONSERTO_OCULOS_ITENS WHERE `$col`=?");
+        $tbl = consertoItemTable($pdo);
+        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM `$tbl` WHERE `$col`=?");
         $it->execute([$id]);
         foreach($it as $r){
             $pdo->prepare("UPDATE PRODUTO SET ESTOQUE_ATUAL=ESTOQUE_ATUAL-? WHERE ID=?")->execute([$r['QUANTIDADE'],$r['ID_PRODUTO']]);
@@ -23,12 +24,13 @@ try{
     }
     if(in_array($old,['APROVADO','ENTREGUE']) && !in_array($status,['APROVADO','ENTREGUE'])){
         $col = consertoItemColumn($pdo);
-        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONSERTO_OCULOS_ITENS WHERE `$col`=?");
+        $tbl = consertoItemTable($pdo);
+        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM `$tbl` WHERE `$col`=?");
         $it->execute([$id]);
         foreach($it as $r){
             $pdo->prepare("UPDATE PRODUTO SET ESTOQUE_ATUAL=ESTOQUE_ATUAL+? WHERE ID=?")->execute([$r['QUANTIDADE'],$r['ID_PRODUTO']]);
         }
-        $pdo->prepare("DELETE FROM CONSERTO_OCULOS_ITENS WHERE `$col`=?")->execute([$id]);
+        $pdo->prepare("DELETE FROM `$tbl` WHERE `$col`=?")->execute([$id]);
     }
     $pdo->commit();
     echo json_encode(['success'=>true]);

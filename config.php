@@ -61,4 +61,19 @@ function consertoItemColumn(PDO $pdo): string {
     $col = 'ID_CONCERTO';
     return $col;
 }
+
+// Helper to detect table name for itens do conserto
+function consertoItemTable(PDO $pdo): string {
+    static $tbl;
+    if ($tbl !== null) return $tbl;
+    $candidates = ['CONSERTO_OCULOS_ITENS', 'CONCERTO_OCULOS_ITENS'];
+    foreach ($candidates as $t) {
+        if (tableExists($pdo, $t)) {
+            $tbl = $t;
+            return $tbl;
+        }
+    }
+    $tbl = 'CONSERTO_OCULOS_ITENS';
+    return $tbl;
+}
 ?>
