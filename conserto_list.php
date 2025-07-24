@@ -21,6 +21,7 @@ $sql = "SELECT c.ID,
         LEFT JOIN EMPRESA e  ON e.ID=c.ID_EMPRESA
         LEFT JOIN CONCERTO_OCULOS_TEMPO t ON t.ID_CONCERTO=c.ID AND t.FIM IS NULL";
 $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+$canDelete = hasRole('ADMINISTRADOR');
 include 'header.php';
 ?>
 <div class="container mx-auto">
@@ -31,7 +32,7 @@ include 'header.php';
       <tr>
         <th>ID</th><th>Cliente</th><th>Usuário</th><th>Empresa</th>
         <th>Contato</th><th>Data Entrada</th><th>Previsão Entrega</th><th>Problema</th><th>Status</th>
-        <th>Ações</th><th>Tempo</th>
+        <th>Opções</th><th>Ações</th><th>Tempo</th>
       </tr>
     </thead>
     <tbody>
@@ -54,6 +55,12 @@ include 'header.php';
             </select>
             <button onclick="saveSit(<?= $r['ID'] ?>)" class="text-green-700 hover:text-green-900"><i class="fas fa-check"></i></button>
           </div>
+        </td>
+        <td class="table-actions">
+          <a href="conserto_form.php?id=<?= $r['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+          <?php if($canDelete): ?>
+          <a href="conserto_delete.php?id=<?= $r['ID'] ?>" onclick="return confirm('Excluir este conserto?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
+          <?php endif; ?>
         </td>
         <td class="acoes flex gap-2"></td>
         <td class="tempo">00:00:00</td>
