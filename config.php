@@ -45,4 +45,20 @@ function tableExists(PDO $pdo, string $table): bool {
         return false;
     }
 }
+
+// Helper to detect the foreign key column name for consertos in CONSERTO_OCULOS_ITENS
+function consertoItemColumn(PDO $pdo): string {
+    static $col;
+    if ($col !== null) return $col;
+    $candidates = ['ID_CONCERTO', 'ID_CONSERTO'];
+    foreach ($candidates as $c) {
+        if (columnExists($pdo, 'CONSERTO_OCULOS_ITENS', $c)) {
+            $col = $c;
+            return $col;
+        }
+    }
+    // default to original name
+    $col = 'ID_CONCERTO';
+    return $col;
+}
 ?>
