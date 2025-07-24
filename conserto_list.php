@@ -15,11 +15,11 @@ $sql = "SELECT c.ID,
                c.DURACAO_FINAL_SEGUNDOS,
                c.SITUACAO,
                UNIX_TIMESTAMP(t.INICIO) AS INICIO_TS
-        FROM CONCERTO_OCULOS c
+        FROM CONSERTO_OCULOS c
         LEFT JOIN CLIENTE cl ON cl.ID=c.ID_CLIENTE
         LEFT JOIN USUARIO u  ON u.ID=c.ID_USUARIO
         LEFT JOIN EMPRESA e  ON e.ID=c.ID_EMPRESA
-        LEFT JOIN CONCERTO_OCULOS_TEMPO t ON t.ID_CONCERTO=c.ID AND t.FIM IS NULL";
+        LEFT JOIN CONSERTO_OCULOS_TEMPO t ON t.ID_CONCERTO=c.ID AND t.FIM IS NULL";
 $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 include 'header.php';
 ?>

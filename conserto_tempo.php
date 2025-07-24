@@ -11,36 +11,36 @@ if(!$id || !in_array($action,['start','pause','stop'])){
     exit;
 }
 
-if(!tableExists($pdo,'CONCERTO_OCULOS') || !tableExists($pdo,'CONCERTO_OCULOS_TEMPO')){
+if(!tableExists($pdo,'CONSERTO_OCULOS') || !tableExists($pdo,'CONSERTO_OCULOS_TEMPO')){
     echo json_encode(['success'=>false,'error'=>'Tabelas não encontradas']);
     exit;
 }
 
 try{
     $pdo->beginTransaction();
-    $stmt=$pdo->prepare("SELECT DURACAO_FINAL_SEGUNDOS FROM CONCERTO_OCULOS WHERE ID=? FOR UPDATE");
+    $stmt=$pdo->prepare("SELECT DURACAO_FINAL_SEGUNDOS FROM CONSERTO_OCULOS WHERE ID=? FOR UPDATE");
     $stmt->execute([$id]);
     $total=(int)$stmt->fetchColumn();
     if($stmt->rowCount()==0){ throw new Exception('Registro não encontrado'); }
 
     if($action==='start'){
-        $st=$pdo->prepare("SELECT 1 FROM CONCERTO_OCULOS_TEMPO WHERE ID_CONCERTO=? AND FIM IS NULL");
+        $st=$pdo->prepare("SELECT 1 FROM CONSERTO_OCULOS_TEMPO WHERE ID_CONCERTO=? AND FIM IS NULL");
         $st->execute([$id]);
         if($st->fetch()){ throw new Exception('Já em execução'); }
-        $pdo->prepare("INSERT INTO CONCERTO_OCULOS_TEMPO (ID_CONCERTO,INICIO) VALUES (?,NOW())")->execute([$id]);
+        $pdo->prepare("INSERT INTO CONSERTO_OCULOS_TEMPO (ID_CONCERTO,INICIO) VALUES (?,NOW())")->execute([$id]);
     }else{
-        $st=$pdo->prepare("SELECT ID,INICIO FROM CONCERTO_OCULOS_TEMPO WHERE ID_CONCERTO=? AND FIM IS NULL ORDER BY ID DESC LIMIT 1");
+        $st=$pdo->prepare("SELECT ID,INICIO FROM CONSERTO_OCULOS_TEMPO WHERE ID_CONCERTO=? AND FIM IS NULL ORDER BY ID DESC LIMIT 1");
         $st->execute([$id]);
         $curr=$st->fetch(PDO::FETCH_ASSOC);
         if(!$curr) throw new Exception('Não iniciado');
-        $pdo->prepare("UPDATE CONCERTO_OCULOS_TEMPO SET FIM=NOW() WHERE ID=?")->execute([$curr['ID']]);
+        $pdo->prepare("UPDATE CONSERTO_OCULOS_TEMPO SET FIM=NOW() WHERE ID=?")->execute([$curr['ID']]);
         $stDiff=$pdo->prepare("SELECT TIMESTAMPDIFF(SECOND, ?, NOW())");
         $stDiff->execute([$curr['INICIO']]);
         $diff=(int)$stDiff->fetchColumn();
         $total+=$diff;
-        $pdo->prepare("UPDATE CONCERTO_OCULOS SET DURACAO_FINAL_SEGUNDOS=? WHERE ID=?")->execute([$total,$id]);
+        $pdo->prepare("UPDATE CONSERTO_OCULOS SET DURACAO_FINAL_SEGUNDOS=? WHERE ID=?")->execute([$total,$id]);
         if($action==='stop'){
-            $pdo->prepare("UPDATE CONCERTO_OCULOS SET SITUACAO='FINALIZADO' WHERE ID=?")->execute([$id]);
+            $pdo->prepare("UPDATE CONSERTO_OCULOS SET SITUACAO='FINALIZADO' WHERE ID=?")->execute([$id]);
         }
     }
     $pdo->commit();

@@ -65,7 +65,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
         $total = $valorProdutos + $valorConserto + $freteValor - (float)str_replace(',','.', $desconto);
         try{
             $pdo->beginTransaction();
-            $sql = "INSERT INTO CONCERTO_OCULOS (ID_CLIENTE,ID_USUARIO,ID_EMPRESA,ID_FRETE,DATA_ENTRADA,PREVISAO_ENTREGA,TEMPO_PREVISTO,PROBLEMA_DESCRITO,DESCONTO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,SITUACAO,OBSERVACAO,DURACAO_FINAL_SEGUNDOS) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?,0)";
+            $sql = "INSERT INTO CONSERTO_OCULOS (ID_CLIENTE,ID_USUARIO,ID_EMPRESA,ID_FRETE,DATA_ENTRADA,PREVISAO_ENTREGA,TEMPO_PREVISTO,PROBLEMA_DESCRITO,DESCONTO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,SITUACAO,OBSERVACAO,DURACAO_FINAL_SEGUNDOS) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?,0)";
             $pdo->prepare($sql)->execute([
                 $id_cliente,
                 $_SESSION['user'],
@@ -85,7 +85,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
             ]);
             $id = $pdo->lastInsertId();
             if($items){
-                $stmtI = $pdo->prepare("INSERT INTO CONCERTO_OCULOS_ITENS (ID_CONCERTO,ID_PRODUTO,QUANTIDADE) VALUES (?,?,?)");
+                $stmtI = $pdo->prepare("INSERT INTO CONSERTO_OCULOS_ITENS (ID_CONCERTO,ID_PRODUTO,QUANTIDADE) VALUES (?,?,?)");
                 foreach($items as $it){
                     $stmtI->execute([$id,$it['ID_PRODUTO'],$it['QUANTIDADE']]);
                 }
