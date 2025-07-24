@@ -186,7 +186,7 @@ include 'header.php';
           <select name="juros_metodo_condicao[]" class="border p-2 rounded w-72">
             <option value="">Selecione</option>
             <?php foreach($jmcDados as $j): ?>
-              <option value="<?= $j['ID'] ?>" data-met="<?= $j['METODO_ID'] ?>" data-juros="<?= $j['JUROS_MENSAL'] ?? 0 ?>">
+              <option value="<?= $j['ID'] ?>" data-met="<?= $j['METODO_ID'] ?>" data-juros="<?= $j['JUROS_MENSAL'] ?? 0 ?>" data-parcelas="<?= $j['PARCELAS'] ?>">
                 <?= htmlspecialchars($j['METODO'].' - '.$j['CONDICAO']) ?>
               </option>
             <?php endforeach; ?>
@@ -320,6 +320,14 @@ function addPg(met,valor,parc,venc){
   const val=c.querySelector('[name="valores_pagamento[]"]');
   val.addEventListener('blur',()=>{formatPgVal(val);updatePgTot();});
   if(window.jQuery&&jQuery.fn.mask){jQuery(val).mask('#.##0,00',{reverse:true});}
+  const parcelaInput=c.querySelector('[name="parcelas_pagamento[]"]');
+  const sel=c.querySelector('select');
+  sel.addEventListener('change',()=>{
+    const opt=sel.selectedOptions[0];
+    const parc=opt?opt.dataset.parcelas:'';
+    if(parc) parcelaInput.value=parc;
+    updatePgTot();
+  });
   c.querySelector('[name="vencimentos_pagamento[]"]').addEventListener('change',updatePgTot);
   pgList.appendChild(c);
   if(window.jQuery&&jQuery.fn.select2){jQuery(c).find('select').select2({width:'100%'});}

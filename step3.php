@@ -380,7 +380,7 @@ include 'header.php';
           <select name="juros_metodo_condicao[]" class="border p-2 rounded w-72">
             <option value="">Selecione</option>
             <?php foreach($jmcDados as $j): ?>
-              <option value="<?= $j['ID'] ?>" data-met="<?= $j['METODO_ID'] ?>" data-juros="<?= $j['JUROS_MENSAL'] ?>">
+              <option value="<?= $j['ID'] ?>" data-met="<?= $j['METODO_ID'] ?>" data-juros="<?= $j['JUROS_MENSAL'] ?>" data-parcelas="<?= $j['PARCELAS'] ?>">
                 <?= htmlspecialchars($j['METODO'].' - '.$j['CONDICAO']) ?>
               </option>
             <?php endforeach; ?>
@@ -417,7 +417,6 @@ function addPagamento(){
     fetchJuros();
     updatePagamentoTotal();
   });
-  clone.querySelectorAll('select').forEach(sel=>sel.addEventListener('change',fetchJuros));
   const valInput = clone.querySelector('input[name="valores_pagamento[]"]');
   valInput.addEventListener('blur',fetchJuros);
   valInput.addEventListener('input',updatePagamentoTotal);
@@ -427,6 +426,13 @@ function addPagamento(){
     jQuery(val).mask('#.##0,00',{reverse:true});
   }
   const parcInput = clone.querySelector('input[name="parcelas_pagamento[]"]');
+  const sel = clone.querySelector('select[name="juros_metodo_condicao[]"]');
+  sel.addEventListener('change',()=>{
+    const opt = sel.selectedOptions[0];
+    const parc = opt ? opt.dataset.parcelas : '';
+    if(parc) parcInput.value = parc;
+    fetchJuros();
+  });
   parcInput.addEventListener('change',fetchJuros);
   const vencInput = clone.querySelector('input[name="vencimentos_pagamento[]"]');
   vencInput.value = new Date().toISOString().slice(0,10);
