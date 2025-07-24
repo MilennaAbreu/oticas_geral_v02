@@ -47,10 +47,15 @@ $valor_liquido = $valor_total;
 $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
 $hasDataVenda = columnExists($pdo,'VENDAS','DATA_VENDA');
 $hasFormaPag = columnExists($pdo,"VENDAS","FORMA_PAGAMENTO");
+$metColVenda = vendaMetodoColumn($pdo);
 
 // monta dinamicamente colunas e valores
-$cols=['ID_CLIENTE','ID_USUARIO','ID_METODO_PAGAMENTO','JUROS_APLICADO'];
-$vals=[$id_cliente,$id_usuario,$id_metodo,$juros_aplicado];
+$cols=['ID_CLIENTE','ID_USUARIO','JUROS_APLICADO'];
+$vals=[$id_cliente,$id_usuario,$juros_aplicado];
+if($metColVenda){
+    $cols[]=$metColVenda;
+    $vals[]=$id_metodo;
+}
 if($hasDataVenda){$cols[]='DATA_VENDA';$vals[]=$data_venda;}
 if($hasFormaPag){$cols[]='FORMA_PAGAMENTO';$vals[]='À VISTA';}
 $cols=array_merge($cols,['VALOR_VENDA','VALOR_TOTAL']);

@@ -49,10 +49,7 @@ $idCond = null;
 $dataVenda = $_SESSION['venda']['DATA_VENDA'] ?? date('Y-m-d');
 
 // detect possible column names for metodo de pagamento nas tabelas
-$metColVenda = null;
-foreach(['ID_METODO_PAGAMENTO','ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $c){
-    if(columnExists($pdo,'VENDAS',$c)){ $metColVenda = $c; break; }
-}
+$metColVenda = vendaMetodoColumn($pdo);
 $idFrete = $_POST['id_frete'] ?? '';
 $dataEntrega = $_POST['data_entrega'] ?? '';
 $telContato    = $_POST['telefone_contato'] ?? $cliente['CONTATO'];

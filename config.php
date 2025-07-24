@@ -76,4 +76,19 @@ function consertoItemTable(PDO $pdo): string {
     $tbl = 'CONSERTO_OCULOS_ITENS';
     return $tbl;
 }
+
+// Detect column name for metodo de pagamento in VENDAS table
+function vendaMetodoColumn(PDO $pdo): ?string {
+    static $col;
+    if ($col !== null) return $col;
+    $candidates = ['ID_METODO_PAGAMENTO', 'ID_METODO', 'METODO_ID', 'ID_METODO_PAG', 'ID_METODO_PAGTO'];
+    foreach ($candidates as $c) {
+        if (columnExists($pdo, 'VENDAS', $c)) {
+            $col = $c;
+            return $col;
+        }
+    }
+    $col = null;
+    return $col;
+}
 ?>
