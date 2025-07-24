@@ -37,38 +37,21 @@ function distanciaKm($cep1,$cep2){
     return 6371 * $c;
 }
 
-// valores default dos campos
-$jurosSel   = $_POST['juros_metodo_condicao'] ?? [];
-$valoresPag  = $_POST['valores_pagamento'] ?? [];
-$parcelasPag = $_POST['parcelas_pagamento'] ?? [];
-$vencPag     = $_POST['vencimentos_pagamento'] ?? [];
+$formasPag  = $_POST['formas_pagamento'] ?? [];
+$valoresPag = $_POST['valores_pagamento'] ?? [];
 
-// dados de juros/metodo/condicao
-$jmcDados = $pdo->query(
-    "SELECT j.ID, j.ID_METODO_PAGAMENTO AS METODO_ID, j.ID_CONDICAO AS CONDICAO_ID, j.JUROS_MENSAL, c.PARCELAS, m.NOME AS METODO, c.NOME AS CONDICAO
-       FROM JUROS_METODO_CONDICAO j
-       JOIN METODO_PAGAMENTO m ON j.ID_METODO_PAGAMENTO=m.ID
-       JOIN CONDICAO_PAGAMENTO c ON j.ID_CONDICAO=c.ID
-     ORDER BY m.NOME,c.NOME"
-)->fetchAll(PDO::FETCH_ASSOC);
-$jmcMap = [];
-foreach($jmcDados as $j){
-    $jmcMap[$j['ID']] = $j;
-}
-
-$firstJmc = $jurosSel[0] ?? '';
-$idMet = isset($jmcMap[$firstJmc]) ? $jmcMap[$firstJmc]['METODO_ID'] : '';
-$idCond = isset($jmcMap[$firstJmc]) ? $jmcMap[$firstJmc]['CONDICAO_ID'] : '';
+// métodos de pagamento
+$metodos = $pdo->query("SELECT ID, NOME FROM METODO_PAGAMENTO ORDER BY NOME")
+    ->fetchAll(PDO::FETCH_ASSOC);
+$primeiroMetodo = $formasPag[0] ?? '';
+$idMet = $primeiroMetodo;
+$idCond = null;
 $dataVenda = $_SESSION['venda']['DATA_VENDA'] ?? date('Y-m-d');
 
 // detect possible column names for metodo de pagamento nas tabelas
 $metColVenda = null;
 foreach(['ID_METODO_PAGAMENTO','ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $c){
     if(columnExists($pdo,'VENDAS',$c)){ $metColVenda = $c; break; }
-}
-$metColJuros = 'ID_METODO_PAGAMENTO';
-foreach(['ID_METODO_PAGAMENTO','ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $c){
-    if(columnExists($pdo,'JUROS_METODO_CONDICAO',$c)){ $metColJuros = $c; break; }
 }
 $idFrete = $_POST['id_frete'] ?? '';
 $dataEntrega = $_POST['data_entrega'] ?? '';
@@ -112,37 +95,16 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     }
     $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
     $valorLiquidoCalc = $valorTotal;
-    $parcelas = 1;
-    $jurosValor = 0;
-    foreach($jurosSel as $i => $jmcId){
-        $val  = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
-        $par  = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
-        $jurosLinha = 0;
-        if(isset($jmcMap[$jmcId])){
-            $jurosLinha = (float)$jmcMap[$jmcId]['JUROS_MENSAL'] * $par;
-        }
-        $parcelas = max($parcelas,$par);
-        $jurosValor += $val * ($jurosLinha/100);
-    }
-    $juros = $valorTotal>0 ? ($jurosValor/$valorTotal)*100 : 0;
-
     $pagamentos = [];
-    foreach($jurosSel as $i => $jmcId){
+    foreach($formasPag as $i => $metId){
         $val = $valoresPag[$i] ?? '';
-        $par = $parcelasPag[$i] ?? '1';
-        $venc = $vencPag[$i] ?? '';
-        if(!$jmcId || $val==='' || !$venc){
-            $error = 'Informe método, valor e vencimento para todos os pagamentos';
+        if(!$metId || $val===''){
+            $error = 'Informe método e valor para todos os pagamentos';
             break;
         }
-        $metId = isset($jmcMap[$jmcId]) ? $jmcMap[$jmcId]['METODO_ID'] : null;
-        $cond  = isset($jmcMap[$jmcId]) ? $jmcMap[$jmcId]['CONDICAO_ID'] : null;
         $pagamentos[] = [
             'metodo_id' => $metId,
-            'condicao_id' => $cond,
-            'valor' => (float)str_replace(',', '.', $val),
-            'parcelas' => (int)$par ?: 1,
-            'vencimento' => $venc
+            'valor' => (float)str_replace(',', '.', $val)
         ];
     }
     $somaPag = array_sum(array_column($pagamentos,'valor'));
@@ -155,7 +117,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     $pdo->beginTransaction();
     try {
         $hasLiquido  = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
-        $hasParc     = columnExists($pdo,'VENDAS','NUMERO_PARCELAS');
+        $hasParc     = false;
         $hasForma    = columnExists($pdo,'VENDAS','FORMA_PAGAMENTO');
         $hasDataVenda= columnExists($pdo,'VENDAS','DATA_VENDA');
         $cols = ['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO'];
@@ -173,9 +135,8 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $vals[] = $idMet;
         }
         $cols[] = 'JUROS_APLICADO';
-        $vals[] = $juros;
-        if($hasParc){ $cols[]='NUMERO_PARCELAS'; $vals[]=$parcelas; }
-        if($hasForma){ $cols[]='FORMA_PAGAMENTO'; $vals[]=$parcelas>1?'PARCELADO':'À VISTA'; }
+        $vals[] = 0;
+        if($hasForma){ $cols[]='FORMA_PAGAMENTO'; $vals[]='À VISTA'; }
         $cols = array_merge($cols,['VALOR_VENDA','VALOR_TOTAL']);
         $vals = array_merge($vals,[$valorVenda,$valorTotal]);
         if($hasLiquido){ $cols[]='VALOR_LIQUIDO'; $vals[]=$valorLiquidoCalc; }
@@ -223,20 +184,11 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
                 }
             }
         }
-        $hasParcPg = columnExists($pdo,$tablePag,'PARCELAS');
-        $vencCol = null;
-        if(columnExists($pdo,$tablePag,'DATA_VENC_PARCELA')) $vencCol = 'DATA_VENC_PARCELA';
-        elseif(columnExists($pdo,$tablePag,'DATA_VENCIMENTO_PARCELA')) $vencCol = 'DATA_VENCIMENTO_PARCELA';
-        $hasVencPg = $vencCol !== null;
         $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR";
         $placePg = '?,?,?';
-        if($hasParcPg){ $colsPg .= ', PARCELAS'; $placePg .= ',?'; }
-        if($hasVencPg){ $colsPg .= ', '.$vencCol; $placePg .= ',?'; }
         $stmtPag = $pdo->prepare("INSERT INTO {$tablePag} ($colsPg) VALUES ($placePg)");
         foreach($pagamentos as $pg){
             $valsPg = [$idVenda,$pg['metodo_id'],$pg['valor']];
-            if($hasParcPg) $valsPg[] = $pg['parcelas'];
-            if($hasVencPg) $valsPg[] = $pg['vencimento'];
             $stmtPag->execute($valsPg);
         }
 
@@ -281,22 +233,9 @@ if($idFrete){
         $freteValor = $valorKm * $distanciaCalc;
     }
 }
-$juros = 0;
-$parcelas = 1;
 $valorTotal = $valorVenda - $valorDescItens - $descGeral + $freteValor;
 $valorLiquidoCalc = $valorTotal;
-$jurosValor = 0;
-foreach($jurosSel as $i=>$jmcId){
-    $val  = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
-    $par  = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
-    $jurosLinha = 0;
-    if(isset($jmcMap[$jmcId])){
-        $jurosLinha = (float)$jmcMap[$jmcId]['JUROS_MENSAL'] * $par;
-    }
-    $parcelas = max($parcelas,$par);
-    $jurosValor += $val*($jurosLinha/100);
-}
-$juros = $valorTotal>0 ? ($jurosValor/$valorTotal)*100 : 0;
+$juros = 0;
 
 $pageTitle = 'Pagamento';
 include 'header.php';
@@ -360,34 +299,27 @@ include 'header.php';
       <p>Desconto Geral: R$ <span id="vDescGeral"><?= number_format($descGeral,2,',','.') ?></span></p>
       <p>Distância: <span id="distanciaKm"><?= number_format($distanciaCalc,2,',','.') ?></span> km</p>
       <p>Frete: R$ <span id="vFrete"><?= number_format($freteValor,2,',','.') ?></span></p>
-      <span id="vJuros" class="hidden"><?= number_format($juros,2,',','.') ?></span>
       <p class="hidden">Valor Total: R$ <span id="vTotal"><?= number_format($valorTotal,2,',','.') ?></span></p>
       <p class="text-lg font-bold text-green-800">Valor Líquido: R$ <span id="vLiquido"><?= number_format($valorLiquidoCalc,2,',','.') ?></span></p>
     </div>
     <div class="md:col-span-2 mt-4 mb-8">
       <label class="block mb-1">Pagamentos</label>
       <div class="flex items-center gap-2 font-semibold mb-1">
-        <div class="w-72">Método/Condição</div>
+        <div class="w-72">Método</div>
         <div class="w-32">Valor</div>
-        <div class="w-20">Parcelas</div>
-        <div class="w-36">Vencimento</div>
       </div>
       <div id="pagamentos" class="space-y-2"></div>
       <div class="mt-2 text-right">Total pagamentos: R$ <span id="totPagamentos">0,00</span></div>
       <button type="button" id="addPagamento" class="mt-2 px-3 py-1 bg-gray-300 rounded">Adicionar pagamento</button>
       <template id="pgTemplate">
         <div class="pagamento flex items-center gap-2 bg-gray-100 p-2 rounded">
-          <select name="juros_metodo_condicao[]" class="border p-2 rounded w-72">
+          <select name="formas_pagamento[]" class="border p-2 rounded w-72">
             <option value="">Selecione</option>
-            <?php foreach($jmcDados as $j): ?>
-              <option value="<?= $j['ID'] ?>" data-met="<?= $j['METODO_ID'] ?>" data-juros="<?= $j['JUROS_MENSAL'] ?>" data-parcelas="<?= $j['PARCELAS'] ?>">
-                <?= htmlspecialchars($j['METODO'].' - '.$j['CONDICAO']) ?>
-              </option>
+            <?php foreach($metodos as $m): ?>
+              <option value="<?= $m['ID'] ?>"><?= htmlspecialchars($m['NOME']) ?></option>
             <?php endforeach; ?>
           </select>
           <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 money" data-mask="money">
-          <input type="number" name="parcelas_pagamento[]" value="1" min="1" class="border p-2 rounded w-20">
-          <input type="date" name="vencimentos_pagamento[]" class="border p-2 rounded w-36">
           <button type="button" class="removePagamento text-red-600 px-2">Remover</button>
         </div>
       </template>
@@ -414,53 +346,20 @@ function addPagamento(){
       jQuery(clone).find('select').select2('destroy');
     }
     clone.remove();
-    fetchJuros();
     updatePagamentoTotal();
   });
   const valInput = clone.querySelector('input[name="valores_pagamento[]"]');
-  valInput.addEventListener('blur',fetchJuros);
   valInput.addEventListener('input',updatePagamentoTotal);
   const val=clone.querySelector('input[name="valores_pagamento[]"]');
   val.addEventListener('blur',()=>formatValor(val));
   if(window.jQuery&&jQuery.fn.mask){
     jQuery(val).mask('#.##0,00',{reverse:true});
   }
-  const parcInput = clone.querySelector('input[name="parcelas_pagamento[]"]');
-  const sel = clone.querySelector('select[name="juros_metodo_condicao[]"]');
-  sel.addEventListener('change',()=>{
-    const opt = sel.selectedOptions[0];
-    const parc = opt ? opt.dataset.parcelas : '';
-    if(parc) parcInput.value = parc;
-    fetchJuros();
-  });
-  parcInput.addEventListener('change',fetchJuros);
-  const vencInput = clone.querySelector('input[name="vencimentos_pagamento[]"]');
-  vencInput.value = new Date().toISOString().slice(0,10);
-  vencInput.addEventListener('change',updatePagamentoTotal);
   pagamentosDiv.appendChild(clone);
   if(window.jQuery&&jQuery.fn.select2){
     jQuery(clone).find('select').select2({width:'100%'});
   }
   updatePagamentoTotal();
-}
-function fetchJuros(){
-  const rows=[...pagamentosDiv.querySelectorAll('.pagamento')];
-  const promises=rows.map(r=>{
-    const sel=r.querySelector('select[name="juros_metodo_condicao[]"]');
-    const juros=parseFloat(sel.selectedOptions[0]?.dataset.juros||'0');
-    const v=parseFloat((r.querySelector('input[name="valores_pagamento[]"]').value||'').replace(',', '.'))||0;
-    const p=parseInt(r.querySelector('input[name="parcelas_pagamento[]"]').value)||1;
-    if(!sel.value) return Promise.resolve(0);
-    return Promise.resolve(v*((juros||0)*p/100));
-  });
-  Promise.all(promises).then(vals=>{
-    const jurosValor=vals.reduce((a,b)=>a+b,0);
-    const tot=parseFloat(document.getElementById('vTotal').textContent.replace(',', '.'))||0;
-    const perc=tot? (jurosValor*100/tot) : 0;
-    document.getElementById('vJuros').textContent=perc.toFixed(2);
-    calcTot();
-    updatePagamentoTotal();
-  });
 }
 function updateFrete(){
   const cep=document.querySelector('[name=cep_entrega]').value.replace(/\D/g,'');
@@ -500,18 +399,16 @@ function updatePagamentoTotal(){
   if(span) span.textContent=soma.toFixed(2).replace('.', ',');
 }
 function validatePagamentos(){
-  const valores=[...document.querySelectorAll("[name=valores_pagamento[]]")].map(i=>{formatValor(i);return parseFloat(i.value.replace(",", "."))||0;});
-  const parcelas=[...document.querySelectorAll("[name=parcelas_pagamento[]]")].map(i=>parseInt(i.value)||1);
-  const conds=[...document.querySelectorAll("[name=juros_metodo_condicao[]]")].map(i=>i.value);
-  const vencs=[...document.querySelectorAll('[name=vencimentos_pagamento[]]')].map(i=>i.value);
+  const valores=[...document.querySelectorAll('[name="valores_pagamento[]"]')].map(i=>{formatValor(i);return parseFloat(i.value.replace(',', '.'))||0;});
+  const metodos=[...document.querySelectorAll('[name="formas_pagamento[]"]')].map(i=>i.value);
   const soma=valores.reduce((a,b)=>a+b,0);
-  const total=parseFloat(document.getElementById("vTotal").textContent.replace(",", "."))||0;
+  const total=parseFloat(document.getElementById('vTotal').textContent.replace(',', '.'))||0;
   if(Math.abs(soma-total)>0.01){
-    alert("A soma dos pagamentos deve ser igual ao Valor Total");
+    alert('A soma dos pagamentos deve ser igual ao Valor Total');
     return false;
   }
-  if(parcelas.some(p=>p<1) || conds.some(c=>!c) || vencs.some(v=>!v)){
-    alert("Quantidade de parcelas, condição ou vencimento inválido");
+  if(metodos.some(m=>!m)){
+    alert('Selecione todos os métodos de pagamento');
     return false;
   }
   return true;
@@ -521,7 +418,7 @@ document.querySelector('[name=desconto_geral]').addEventListener('input',calcTot
 document.querySelector('[name=id_frete]').addEventListener('change',updateFrete);
 document.querySelector('[name=cep_entrega]').addEventListener('blur',updateFrete);
 document.getElementById('formStep3').addEventListener('submit',e=>{if(!validatePagamentos()) e.preventDefault();});
-document.addEventListener('DOMContentLoaded',()=>{addPagamento();fetchJuros();updateFrete();updatePagamentoTotal();});
+document.addEventListener('DOMContentLoaded',()=>{addPagamento();updateFrete();updatePagamentoTotal();});
 </script>
 </div>
 <?php include 'footer.php'; ?>

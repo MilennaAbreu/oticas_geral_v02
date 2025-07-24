@@ -5,28 +5,9 @@ require_once 'auth.php';
 $id = $_POST['id'] ?? null;
 $id_cliente = $_POST['id_cliente'] ?? null;
 $id_usuario = $_POST['id_usuario'] ?? null;
-$id_condicao = $_POST['id_condicao_pagamento'] ?? null;
-$jurosSel = $_POST['juros_metodo_condicao'] ?? [];
+$formasPag = $_POST['formas_pagamento'] ?? [];
 $valoresPag = $_POST['valores_pagamento'] ?? [];
-$parcelasPag = $_POST['parcelas_pagamento'] ?? [];
-$vencimentosPag = $_POST['vencimentos_pagamento'] ?? [];
-$firstJmc = $jurosSel[0] ?? null;
-$id_metodo = null;
-$jmcDados = $pdo->query(
-    "SELECT j.ID, j.ID_METODO_PAGAMENTO AS METODO_ID, j.ID_CONDICAO AS CONDICAO_ID, j.JUROS_MENSAL,
-            m.NOME AS METODO, c.NOME AS CONDICAO
-       FROM JUROS_METODO_CONDICAO j
-       JOIN METODO_PAGAMENTO m ON j.ID_METODO_PAGAMENTO=m.ID
-       JOIN CONDICAO_PAGAMENTO c ON j.ID_CONDICAO=c.ID"
-)->fetchAll(PDO::FETCH_ASSOC);
-$jmcMap = [];
-foreach($jmcDados as $j){
-    $jmcMap[$j['ID']] = $j;
-    if($firstJmc && $j['ID'] == $firstJmc){
-        $id_metodo = $j['METODO_ID'];
-        $id_condicao = $j['CONDICAO_ID'];
-    }
-}
+$id_metodo = $formasPag[0] ?? null;
 $id_frete    = $_POST['id_frete'] ?? null;
 $data_entrega = $_POST['data_entrega'] ?: null;
 $data_venda   = $_POST['data_venda'] ?: null;
@@ -46,42 +27,32 @@ $id_empresa  = $_POST['id_empresa'] ?? null;
 // monta pagamentos e calcula juros
 $pagamentos = [];
 $valor_liquido_calc = $valor_total;
-$parcelas = 1;
-foreach($jurosSel as $i=>$jmcId){
+$pagamentos = [];
+foreach($formasPag as $i=>$met){
     $val = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
-    $par = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
-    $venc = $vencimentosPag[$i] ?? '';
-    if(!$jmcId || $val==='' || !$venc){
+    if(!$met || $val===''){
         http_response_code(400);
         exit('Pagamento incompleto');
     }
-    $dados = $jmcMap[$jmcId] ?? null;
-    if($dados){
-        if($i==0){ $id_metodo = $dados['METODO_ID']; $id_condicao = $dados['CONDICAO_ID']; }
-        $jurosLinha = (float)$dados['JUROS_MENSAL'] * $par;
-    } else { $jurosLinha = 0; }
-    $juros_valor = ($juros_valor ?? 0) + $val * ($jurosLinha/100);
-    $parcelas = max($parcelas,$par);
-    $pagamentos[] = ['metodo_id'=>$dados['METODO_ID'] ?? null,'valor'=>$val,'parcelas'=>$par,'vencimento'=>$venc];
+    if($i==0) $id_metodo = $met;
+    $pagamentos[] = ['metodo_id'=>$met,'valor'=>$val];
 }
 $somaPag = array_sum(array_column($pagamentos,'valor'));
 if(round($somaPag,2) != round($valor_total,2)){
     http_response_code(400); exit('Soma dos pagamentos difere do total');
 }
-$juros_aplicado = $valor_total>0 ? (($juros_valor ?? 0)/$valor_total)*100 : 0;
+$juros_aplicado = 0;
 $valor_liquido = $valor_total;
 
 $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
 $hasDataVenda = columnExists($pdo,'VENDAS','DATA_VENDA');
-$hasParcelas = columnExists($pdo,"VENDAS","NUMERO_PARCELAS");
 $hasFormaPag = columnExists($pdo,"VENDAS","FORMA_PAGAMENTO");
 
 // monta dinamicamente colunas e valores
-$cols=['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO','ID_METODO_PAGAMENTO','JUROS_APLICADO'];
-$vals=[$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado];
+$cols=['ID_CLIENTE','ID_USUARIO','ID_METODO_PAGAMENTO','JUROS_APLICADO'];
+$vals=[$id_cliente,$id_usuario,$id_metodo,$juros_aplicado];
 if($hasDataVenda){$cols[]='DATA_VENDA';$vals[]=$data_venda;}
-if($hasParcelas){$cols[]='NUMERO_PARCELAS';$vals[]=$parcelas;}
-if($hasFormaPag){$cols[]='FORMA_PAGAMENTO';$vals[]=$parcelas>1?'PARCELADO':'À VISTA';}
+if($hasFormaPag){$cols[]='FORMA_PAGAMENTO';$vals[]='À VISTA';}
 $cols=array_merge($cols,['VALOR_VENDA','VALOR_TOTAL']);
 $vals=array_merge($vals,[$valor_venda,$valor_total]);
 if($hasLiquido){$cols[]='VALOR_LIQUIDO';$vals[]=$valor_liquido;}
@@ -118,20 +89,11 @@ try{
             if(columnExists($pdo,$tablePag,$c)){ $colMetodoPg = $c; break; }
         }
     }
-    $hasParcPg = columnExists($pdo,$tablePag,'PARCELAS');
-    $vencCol = null;
-    if(columnExists($pdo,$tablePag,'DATA_VENC_PARCELA')) $vencCol='DATA_VENC_PARCELA';
-    elseif(columnExists($pdo,$tablePag,'DATA_VENCIMENTO_PARCELA')) $vencCol='DATA_VENCIMENTO_PARCELA';
-    $hasVencPg = $vencCol !== null;
     $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR";
     $placePg = '?,?,?';
-    if($hasParcPg){ $colsPg .= ', PARCELAS'; $placePg .= ',?'; }
-    if($hasVencPg){ $colsPg .= ', '.$vencCol; $placePg .= ',?'; }
     $stmtPg = $pdo->prepare("INSERT INTO {$tablePag} ($colsPg) VALUES ($placePg)");
     foreach($pagamentos as $pg){
         $valsPg = [$id,$pg['metodo_id'],$pg['valor']];
-        if($hasParcPg) $valsPg[]=$pg['parcelas'];
-        if($hasVencPg) $valsPg[]=$pg['vencimento'];
         $stmtPg->execute($valsPg);
     }
 
@@ -140,12 +102,7 @@ try{
         if($status === 'CONCLUÍDA'){
             $stmtRec = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
             foreach($pagamentos as $pg){
-                $qt = max(1,$pg['parcelas']);
-                $vp = round($pg['valor']/$qt,2);
-                for($i=0;$i<$qt;$i++){
-                    $venc = date('Y-m-d', strtotime($pg['vencimento']." +{$i} month"));
-                    $stmtRec->execute([$id,$id_cliente,$vp,$venc,'PENDENTE',$id_empresa]);
-                }
+                $stmtRec->execute([$id,$id_cliente,$pg['valor'],date('Y-m-d'),'PENDENTE',$id_empresa]);
             }
         }
     }
