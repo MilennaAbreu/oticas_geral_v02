@@ -1,0 +1,38 @@
+<?php
+require_once 'config.php';
+require_once 'auth.php';
+
+header('Content-Type: application/json');
+$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+$status = $_POST['status'] ?? '';
+if(!$id || !$status){ http_response_code(400); echo json_encode(['success'=>false,'error'=>'Dados incompletos']); exit; }
+try{
+    $pdo->beginTransaction();
+    $st = $pdo->prepare("SELECT SITUACAO FROM CONCERTO_OCULOS WHERE ID=? FOR UPDATE");
+    $st->execute([$id]);
+    $old = $st->fetchColumn();
+    if(!$old){ throw new Exception('Conserto não encontrado'); }
+    $pdo->prepare("UPDATE CONCERTO_OCULOS SET SITUACAO=? WHERE ID=?")->execute([$status,$id]);
+    if($old !== 'APROVADO' && $status === 'APROVADO'){
+        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONCERTO_OCULOS_ITENS WHERE ID_CONCERTO=?");
+        $it->execute([$id]);
+        foreach($it as $r){
+            $pdo->prepare("UPDATE PRODUTO SET ESTOQUE_ATUAL=ESTOQUE_ATUAL-? WHERE ID=?")->execute([$r['QUANTIDADE'],$r['ID_PRODUTO']]);
+        }
+    }
+    if($old === 'APROVADO' && $status !== 'APROVADO'){
+        $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONCERTO_OCULOS_ITENS WHERE ID_CONCERTO=?");
+        $it->execute([$id]);
+        foreach($it as $r){
+            $pdo->prepare("UPDATE PRODUTO SET ESTOQUE_ATUAL=ESTOQUE_ATUAL+? WHERE ID=?")->execute([$r['QUANTIDADE'],$r['ID_PRODUTO']]);
+        }
+        $pdo->prepare("DELETE FROM CONCERTO_OCULOS_ITENS WHERE ID_CONCERTO=?")->execute([$id]);
+    }
+    $pdo->commit();
+    echo json_encode(['success'=>true]);
+}catch(Exception $e){
+    $pdo->rollBack();
+    http_response_code(500);
+    echo json_encode(['success'=>false,'error'=>$e->getMessage()]);
+}
+?>

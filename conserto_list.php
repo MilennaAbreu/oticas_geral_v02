@@ -12,6 +12,7 @@ $sql = "SELECT c.ID,
                DATE_FORMAT(c.DATA_ENTRADA,'%d/%m/%Y') AS DATA_ENTRADA,
                DATE_FORMAT(c.PREVISAO_ENTREGA,'%d/%m/%Y') AS PREVISAO_ENTRADA,
                c.DURACAO_FINAL_SEGUNDOS,
+               c.SITUACAO,
                t.INICIO
         FROM CONCERTO_OCULOS c
         LEFT JOIN CLIENTE cl ON cl.ID=c.ID_CLIENTE
@@ -23,11 +24,12 @@ include 'header.php';
 ?>
 <div class="container mx-auto">
   <h2 class="text-2xl font-semibold mb-4">Controle de Consertos</h2>
+  <a href="conserto_form.php" class="bg-primary text-white px-4 py-2 rounded mb-4 inline-block">Novo Concerto</a>
   <table id="concertoTable" class="display w-full">
     <thead>
       <tr>
         <th>ID</th><th>Cliente</th><th>Usuário</th><th>Empresa</th>
-        <th>Contato</th><th>Data Entrada</th><th>Previsão Entrega</th>
+        <th>Contato</th><th>Data Entrada</th><th>Previsão Entrega</th><th>Status</th>
         <th>Ações</th><th>Tempo</th>
       </tr>
     </thead>
@@ -41,6 +43,16 @@ include 'header.php';
         <td><?= htmlspecialchars($r['TELEFONE_CONTATO']) ?></td>
         <td><?= $r['DATA_ENTRADA'] ?></td>
         <td><?= $r['PREVISAO_ENTRADA'] ?></td>
+        <td>
+          <div class="flex items-center gap-1">
+            <select id="sit_<?= $r['ID'] ?>" class="border p-1 rounded status-select bg-opacity-20">
+              <?php foreach(['PENDENTE','APROVADO','CANCELADO','ORÇAMENTO'] as $s): ?>
+                <option value="<?= $s ?>" <?= $r['SITUACAO']==$s?'selected':'' ?>><?= $s ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button onclick="saveSit(<?= $r['ID'] ?>)" class="text-green-700 hover:text-green-900"><i class="fas fa-check"></i></button>
+          </div>
+        </td>
         <td class="acoes"></td>
         <td class="tempo">00:00:00</td>
       </tr>
@@ -95,9 +107,25 @@ document.addEventListener('DOMContentLoaded',function(){
       if(e.target.closest('.start')) call('start');
       if(e.target.closest('.pause')) call('pause');
       if(e.target.closest('.stop')) call('stop');
-    });
-    render();
+  });
+  render();
   });
 });
+
+function saveSit(id){
+  const sel=document.getElementById('sit_'+id);
+  fetch('conserto_update_status.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`id=${id}&status=${encodeURIComponent(sel.value)}`})
+    .then(r=>r.json()).then(d=>{ if(d.success){ setColor(sel); alert('Status atualizado'); } else { alert('Erro: '+(d.error||'')); } });
+}
+function setColor(sel){
+  sel.classList.remove('bg-green-100','bg-red-100','bg-blue-100','bg-yellow-100','text-green-800','text-red-800','text-blue-800','text-yellow-800');
+  switch(sel.value){
+    case 'APROVADO': sel.classList.add('bg-green-100','text-green-800'); break;
+    case 'CANCELADO': sel.classList.add('bg-red-100','text-red-800'); break;
+    case 'ORÇAMENTO': sel.classList.add('bg-blue-100','text-blue-800'); break;
+    default: sel.classList.add('bg-yellow-100','text-yellow-800');
+  }
+}
+document.querySelectorAll('.status-select').forEach(setColor);
 </script>
 <?php include 'footer.php'; ?>
