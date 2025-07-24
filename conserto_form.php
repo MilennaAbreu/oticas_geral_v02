@@ -16,6 +16,9 @@ $valor_hora = $_POST['valor_hora'] ?? '0';
 $desconto = $_POST['desconto'] ?? '0';
 $id_frete = $_POST['id_frete'] ?? '';
 $cep_entrega = $_POST['cep_entrega'] ?? '';
+$rua_entrega = $_POST['rua_entrega'] ?? '';
+$bairro_entrega = $_POST['bairro_entrega'] ?? '';
+$id_cidade = $_POST['id_cidade'] ?? '';
 $obs = $_POST['observacao'] ?? '';
 $erro = '';
 
@@ -61,7 +64,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
         $total = $valorProdutos + $valorConserto + $freteValor - (float)str_replace(',','.', $desconto);
         try{
             $pdo->beginTransaction();
-            $sql = "INSERT INTO CONCERTO_OCULOS (ID_CLIENTE,ID_USUARIO,ID_EMPRESA,ID_FRETE,DATA_ENTRADA,PREVISAO_ENTREGA,TEMPO_PREVISTO,DESCONTO,SITUACAO,OBSERVACAO,DURACAO_FINAL_SEGUNDOS) VALUES (?,?,?,?,?,?,?,?,?, ?,0)";
+            $sql = "INSERT INTO CONCERTO_OCULOS (ID_CLIENTE,ID_USUARIO,ID_EMPRESA,ID_FRETE,DATA_ENTRADA,PREVISAO_ENTREGA,TEMPO_PREVISTO,DESCONTO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,SITUACAO,OBSERVACAO,DURACAO_FINAL_SEGUNDOS) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, ?,0)";
             $pdo->prepare($sql)->execute([
                 $id_cliente,
                 $_SESSION['user'],
@@ -71,6 +74,10 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
                 $prev_entrega,
                 $tempo_previsto,
                 str_replace(',','.', $desconto),
+                preg_replace('/\D/','',$cep_entrega),
+                $rua_entrega,
+                $bairro_entrega,
+                $id_cidade ?: null,
                 'PENDENTE',
                 $obs
             ]);
@@ -102,6 +109,19 @@ if($allowed){
 $clientes = $pdo->query("SELECT ID,NOME FROM CLIENTE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
 $fretes = $pdo->query("SELECT ID,DESCRICAO,VALOR FROM FRETE ORDER BY DESCRICAO")->fetchAll(PDO::FETCH_ASSOC);
 $produtos = $pdo->query("SELECT p.ID, p.NOME, p.VALOR_UNITARIO FROM PRODUTO p JOIN CATEGORIA_PRODUTO c ON p.ID_CATEGORIA=c.ID WHERE UPPER(c.NOME) IN ('PECA','PEÇAS','PEÇA','PECAS') ORDER BY p.NOME")->fetchAll(PDO::FETCH_ASSOC);
+$cidades = $pdo->query("SELECT ID, CONCAT(NOME,'/',UF) AS NOME FROM CIDADE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
+
+$cliAddr=['CEP'=>'','RUA'=>'','BAIRRO'=>'','ID_CIDADE'=>''];
+if($id_cliente){
+    $st=$pdo->prepare("SELECT CEP,RUA,BAIRRO,ID_CIDADE FROM CLIENTE WHERE ID=?");
+    $st->execute([$id_cliente]);
+    $r=$st->fetch(PDO::FETCH_ASSOC);
+    if($r) $cliAddr=$r;
+}
+$cep_entrega = $_POST['cep_entrega'] ?? $cliAddr['CEP'];
+$rua_entrega = $_POST['rua_entrega'] ?? $cliAddr['RUA'];
+$bairro_entrega = $_POST['bairro_entrega'] ?? $cliAddr['BAIRRO'];
+$id_cidade = $_POST['id_cidade'] ?? $cliAddr['ID_CIDADE'];
 $pageTitle='Novo Concerto';
 include 'header.php';
 ?>
@@ -141,11 +161,11 @@ include 'header.php';
     </div>
     <div>
       <label class="block mb-1">Valor Hora</label>
-      <input type="text" name="valor_hora" value="<?= htmlspecialchars($valor_hora) ?>" class="border p-2 rounded w-full" data-mask="money" oninput="calcTot()">
+      <input type="number" step="0.01" name="valor_hora" value="<?= htmlspecialchars($valor_hora) ?>" class="border p-2 rounded w-full" oninput="calcTot()">
     </div>
     <div>
       <label class="block mb-1">Desconto</label>
-      <input type="text" name="desconto" value="<?= htmlspecialchars($desconto) ?>" class="border p-2 rounded w-full" data-mask="money" oninput="calcTot()">
+      <input type="number" step="0.01" name="desconto" value="<?= htmlspecialchars($desconto) ?>" class="border p-2 rounded w-full" oninput="calcTot()">
     </div>
     <div>
       <label class="block mb-1">Frete</label>
@@ -159,6 +179,23 @@ include 'header.php';
     <div>
       <label class="block mb-1">CEP Entrega</label>
       <input type="text" name="cep_entrega" value="<?= htmlspecialchars($cep_entrega) ?>" class="border p-2 rounded w-full" data-mask="cep" onblur="updateFrete()">
+    </div>
+    <div>
+      <label class="block mb-1">Rua Entrega</label>
+      <input type="text" name="rua_entrega" value="<?= htmlspecialchars($rua_entrega) ?>" class="border p-2 rounded w-full">
+    </div>
+    <div>
+      <label class="block mb-1">Bairro Entrega</label>
+      <input type="text" name="bairro_entrega" value="<?= htmlspecialchars($bairro_entrega) ?>" class="border p-2 rounded w-full">
+    </div>
+    <div>
+      <label class="block mb-1">Cidade</label>
+      <select name="id_cidade" class="border p-2 rounded w-full">
+        <option value="">Selecione</option>
+        <?php foreach($cidades as $ci): ?>
+          <option value="<?= $ci['ID'] ?>" <?= $id_cidade==$ci['ID']?'selected':'' ?>><?= htmlspecialchars($ci['NOME']) ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
     <div class="md:col-span-2">
       <label class="block mb-1">Observação</label>
@@ -223,12 +260,14 @@ function calcTot(){
   let vProd=0; document.querySelectorAll('#itemRows tr').forEach(r=>{const sel=r.querySelector('select'); const val=parseFloat(sel.selectedOptions[0]?.dataset.valor||0); const q=parseFloat(r.querySelector('input').value)||0; vProd+=val*q;});
   document.getElementById('vProd').textContent=vProd.toFixed(2);
   const tempo=document.querySelector('[name=tempo_previsto]').value||'0:0:0';
-  const vHora=parseFloat(document.querySelector('[name=valor_hora]').value.replace(',','.'))||0;
+  const vHora=parseFloat(document.querySelector('[name=valor_hora]').value)||0;
   const vCons=tempoParaHoras(tempo)*vHora; document.getElementById('vCons').textContent=vCons.toFixed(2);
   document.getElementById('vFrete').textContent=freteAtual.toFixed(2);
-  const desc=parseFloat(document.querySelector('[name=desconto]').value.replace(',','.'))||0; document.getElementById('vDesc').textContent=desc.toFixed(2);
+  const desc=parseFloat(document.querySelector('[name=desconto]').value)||0; document.getElementById('vDesc').textContent=desc.toFixed(2);
   const total=vProd+vCons+freteAtual-desc; document.getElementById('vTot').textContent=total.toFixed(2);
 }
-addRow(); calcTot();
+addRow();
+calcTot();
+updateFrete();
 </script>
 <?php include 'footer.php'; ?>
