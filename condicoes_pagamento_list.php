@@ -36,26 +36,26 @@ $error = isset($_GET['erro']);
   <table id="table" class="display w-full">
     <thead>
       <tr>
+        <th>Ações</th>
         <th>ID</th>
         <th>Nome</th>
         <?php if($hasJuros): ?><th>Juros</th><?php endif; ?>
         <?php if($hasCondicao): ?><th>Condição</th><?php endif; ?>
-        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
     <?php foreach($items as $it): ?>
       <tr>
-        <td><?= htmlspecialchars($it['id']) ?></td>
-        <td><?= htmlspecialchars($it['nome']) ?></td>
-        <?php if($hasJuros): ?><td><?= number_format($it['juros'],2,',','.') ?>%</td><?php endif; ?>
-        <?php if($hasCondicao): ?><td><?= htmlspecialchars($it['condicao']) ?></td><?php endif; ?>
         <td class="table-actions">
           <a href="condicoes_pagamento_form.php?id=<?= $it['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
           <?php if($canDelete): ?>
             <a href="condicoes_pagamento_delete.php?id=<?= $it['id'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
           <?php endif; ?>
         </td>
+        <td><?= htmlspecialchars($it['id']) ?></td>
+        <td><?= htmlspecialchars($it['nome']) ?></td>
+        <?php if($hasJuros): ?><td><?= number_format($it['juros'],2,',','.') ?>%</td><?php endif; ?>
+        <?php if($hasCondicao): ?><td><?= htmlspecialchars($it['condicao']) ?></td><?php endif; ?>
       </tr>
     <?php endforeach; ?>
     </tbody>

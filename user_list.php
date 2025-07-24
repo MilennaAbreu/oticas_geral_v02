@@ -23,16 +23,11 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
   </div>
   <table id="userTable" class="display w-full">
     <thead>
-        <tr><th>ID</th><th>Nome</th><th>Login</th><th>Permissões</th><th>Empresas</th><th>Ações</th></tr>
+        <tr><th>Ações</th><th>ID</th><th>Nome</th><th>Login</th><th>Permissões</th><th>Empresas</th></tr>
     </thead>
     <tbody>
         <?php foreach($users as $u): ?>
         <tr>
-            <td class="border-t px-4 py-2"><?= $u['id'] ?></td>
-            <td class="border-t px-4 py-2"><?= htmlspecialchars($u['nome']) ?></td>
-            <td class="border-t px-4 py-2"><?= htmlspecialchars($u['username']) ?></td>
-            <td class="border-t px-4 py-2"><?= htmlspecialchars($u['permissoes']) ?></td>
-            <td class="border-t px-4 py-2"><?= htmlspecialchars($u['empresas']) ?></td>
             <td class="table-actions">
                 <?php if($canEdit && !(hasRole('DIRETORIA') && $u['permissoes']==='ADMINISTRADOR')): ?>
                 <a href="user_form.php?id=<?= $u['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
@@ -41,6 +36,11 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <a href="user_delete.php?id=<?= $u['id'] ?>" onclick="return confirm('Excluir este usuário?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
                 <?php endif; ?>
             </td>
+            <td class="border-t px-4 py-2"><?= $u['id'] ?></td>
+            <td class="border-t px-4 py-2"><?= htmlspecialchars($u['nome']) ?></td>
+            <td class="border-t px-4 py-2"><?= htmlspecialchars($u['username']) ?></td>
+            <td class="border-t px-4 py-2"><?= htmlspecialchars($u['permissoes']) ?></td>
+            <td class="border-t px-4 py-2"><?= htmlspecialchars($u['empresas']) ?></td>
         </tr>
         <?php endforeach; ?>
     </tbody>

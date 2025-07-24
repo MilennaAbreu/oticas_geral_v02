@@ -34,17 +34,23 @@ $canDelete = hasRole('ADMINISTRADOR');
   <table id="vendaTable" class="display w-full">
     <thead>
       <tr>
+        <th>Ações</th>
         <th>ID</th>
         <th>Data</th>
         <th>Cliente</th>
         <th>Valor Total</th>
         <th>Status</th>
-        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
     <?php foreach($vendas as $v): ?>
       <tr>
+        <td class="table-actions">
+          <a href="vendas_form.php?id=<?= $v['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+          <?php if($canDelete): ?>
+          <a href="vendas_delete.php?id=<?= $v['ID'] ?>" onclick="return confirm('Excluir esta venda?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
+          <?php endif; ?>
+        </td>
         <td class="border-t px-4 py-2"><?= $v['ID'] ?></td>
         <td class="border-t px-4 py-2"><?= $v['DATA_VENDA'] ?></td>
         <td class="border-t px-4 py-2"><?= htmlspecialchars($v['CLIENTE']) ?></td>
@@ -62,12 +68,6 @@ $canDelete = hasRole('ADMINISTRADOR');
             </select>
             <button onclick="saveStatus(<?= $v['ID'] ?>)" class="text-green-700 hover:text-green-900"><i class="fas fa-check"></i></button>
           </div>
-        </td>
-        <td class="table-actions">
-          <a href="vendas_form.php?id=<?= $v['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
-          <?php if($canDelete): ?>
-          <a href="vendas_delete.php?id=<?= $v['ID'] ?>" onclick="return confirm('Excluir esta venda?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
-          <?php endif; ?>
         </td>
       </tr>
     <?php endforeach; ?>

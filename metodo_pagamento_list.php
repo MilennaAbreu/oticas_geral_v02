@@ -18,22 +18,22 @@ $error = isset($_GET['erro']);
   <table id="table" class="display w-full">
     <thead>
       <tr>
+        <th>Ações</th>
         <th>ID</th>
         <th>Nome</th>
-        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
     <?php foreach($items as $it): ?>
       <tr>
-        <td><?= htmlspecialchars($it['ID']) ?></td>
-        <td><?= htmlspecialchars($it['NOME']) ?></td>
         <td class="table-actions">
           <a href="metodo_pagamento_form.php?id=<?= $it['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
           <?php if($canDelete): ?>
             <a href="metodo_pagamento_delete.php?id=<?= $it['ID'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
           <?php endif; ?>
         </td>
+        <td><?= htmlspecialchars($it['ID']) ?></td>
+        <td><?= htmlspecialchars($it['NOME']) ?></td>
       </tr>
     <?php endforeach; ?>
     </tbody>

@@ -17,26 +17,26 @@ $error = isset($_GET['erro']);
   <table id="table" class="display w-full">
     <thead>
       <tr>
+        <th>Ações</th>
         <th>ID</th>
         <th>Método</th>
         <th>Condição</th>
         <th>Juros %/mês</th>
-        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
     <?php foreach($items as $it): ?>
       <tr>
-        <td><?= $it['ID'] ?></td>
-        <td><?= htmlspecialchars($it['METODO']) ?></td>
-        <td><?= htmlspecialchars($it['CONDICAO']) ?></td>
-        <td><?= number_format($it['JUROS_MENSAL'],2,',','.') ?>%</td>
         <td class="table-actions">
           <a href="juros_metodo_condicao_form.php?id=<?= $it['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
           <?php if($canDelete): ?>
             <a href="juros_metodo_condicao_delete.php?id=<?= $it['ID'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
           <?php endif; ?>
         </td>
+        <td><?= $it['ID'] ?></td>
+        <td><?= htmlspecialchars($it['METODO']) ?></td>
+        <td><?= htmlspecialchars($it['CONDICAO']) ?></td>
+        <td><?= number_format($it['JUROS_MENSAL'],2,',','.') ?>%</td>
       </tr>
     <?php endforeach; ?>
     </tbody>

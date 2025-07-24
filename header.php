@@ -43,6 +43,9 @@ require_once 'permissions.php';
     table.dataTable tbody td, table.dataTable thead th {
       padding: 0.75rem 1rem !important;
     }
+    table.dataTable {
+      font-size: 0.875rem;
+    }
     .table-actions a {
       display: inline-flex;
       align-items: center;
