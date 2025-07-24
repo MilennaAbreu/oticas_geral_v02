@@ -13,7 +13,7 @@ $sql = "SELECT c.ID,
                DATE_FORMAT(c.PREVISAO_ENTREGA,'%d/%m/%Y') AS PREVISAO_ENTRADA,
                c.DURACAO_FINAL_SEGUNDOS,
                c.SITUACAO,
-               t.INICIO
+               UNIX_TIMESTAMP(t.INICIO) AS INICIO_TS
         FROM CONCERTO_OCULOS c
         LEFT JOIN CLIENTE cl ON cl.ID=c.ID_CLIENTE
         LEFT JOIN USUARIO u  ON u.ID=c.ID_USUARIO
@@ -35,7 +35,7 @@ include 'header.php';
     </thead>
     <tbody>
     <?php foreach($rows as $r): ?>
-      <tr data-id="<?= $r['ID'] ?>" data-start="<?= $r['INICIO'] ?>" data-total="<?= (int)$r['DURACAO_FINAL_SEGUNDOS'] ?>">
+      <tr data-id="<?= $r['ID'] ?>" data-start="<?= $r['INICIO_TS'] ?>" data-total="<?= (int)$r['DURACAO_FINAL_SEGUNDOS'] ?>">
         <td><?= $r['ID'] ?></td>
         <td><?= htmlspecialchars($r['CLIENTE']) ?></td>
         <td><?= htmlspecialchars($r['USUARIO']) ?></td>
@@ -46,14 +46,14 @@ include 'header.php';
         <td>
           <div class="flex items-center gap-1">
             <select id="sit_<?= $r['ID'] ?>" class="border p-1 rounded status-select bg-opacity-20">
-              <?php foreach(['PENDENTE','APROVADO','CANCELADO','ORÇAMENTO'] as $s): ?>
+              <?php foreach(['PENDENTE','APROVADO','CANCELADO','ORÇAMENTO','ENTREGUE'] as $s): ?>
                 <option value="<?= $s ?>" <?= $r['SITUACAO']==$s?'selected':'' ?>><?= $s ?></option>
               <?php endforeach; ?>
             </select>
             <button onclick="saveSit(<?= $r['ID'] ?>)" class="text-green-700 hover:text-green-900"><i class="fas fa-check"></i></button>
           </div>
         </td>
-        <td class="acoes"></td>
+        <td class="acoes flex gap-2"></td>
         <td class="tempo">00:00:00</td>
       </tr>
     <?php endforeach; ?>
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded',function(){
     const tempoEl=tr.querySelector('.tempo');
     const acaoEl=tr.querySelector('.acoes');
     let total=parseInt(tr.dataset.total)||0;
-    let start=tr.dataset.start?new Date(tr.dataset.start).getTime():null;
+    let start=tr.dataset.start?parseInt(tr.dataset.start)*1000:null;
     let timer=null;
 
     function update(){
@@ -83,11 +83,11 @@ document.addEventListener('DOMContentLoaded',function(){
     function render(){
       acaoEl.innerHTML='';
       if(start){
-        acaoEl.innerHTML=`<button class="pause text-blue-600"><i class="fas fa-pause"></i></button> <button class="stop text-red-600"><i class="fas fa-stop"></i></button>`;
+        acaoEl.innerHTML=`<button class="pause text-blue-600 px-2"><i class="fas fa-pause"></i></button><button class="stop text-red-600 px-2"><i class="fas fa-stop"></i></button>`;
         timer=setInterval(update,1000);
       }else{
         const disabled=tr.dataset.stopped==='1';
-        acaoEl.innerHTML=`<button class="start text-green-600"${disabled?' disabled':''}><i class="fas fa-play"></i></button> <button class="stop text-red-600"${disabled?' disabled':''}><i class="fas fa-stop"></i></button>`;
+        acaoEl.innerHTML=`<button class="start text-green-600 px-2"${disabled?' disabled':''}><i class="fas fa-play"></i></button><button class="stop text-red-600 px-2"${disabled?' disabled':''}><i class="fas fa-stop"></i></button>`;
         clearInterval(timer); timer=null;
       }
       update();
@@ -121,6 +121,7 @@ function setColor(sel){
   sel.classList.remove('bg-green-100','bg-red-100','bg-blue-100','bg-yellow-100','text-green-800','text-red-800','text-blue-800','text-yellow-800');
   switch(sel.value){
     case 'APROVADO': sel.classList.add('bg-green-100','text-green-800'); break;
+    case 'ENTREGUE': sel.classList.add('bg-green-200','text-green-800'); break;
     case 'CANCELADO': sel.classList.add('bg-red-100','text-red-800'); break;
     case 'ORÇAMENTO': sel.classList.add('bg-blue-100','text-blue-800'); break;
     default: sel.classList.add('bg-yellow-100','text-yellow-800');

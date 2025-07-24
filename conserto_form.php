@@ -83,7 +83,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
             ]);
             $id = $pdo->lastInsertId();
             if($items){
-                $stmtI = $pdo->prepare("INSERT INTO CONSERTO_OCULOS_ITENS (ID_CONCERTO,ID_PRODUTO,QUANTIDADE) VALUES (?,?,?)");
+                $stmtI = $pdo->prepare("INSERT INTO CONCERTO_OCULOS_ITENS (ID_CONCERTO,ID_PRODUTO,QUANTIDADE) VALUES (?,?,?)");
                 foreach($items as $it){
                     $stmtI->execute([$id,$it['ID_PRODUTO'],$it['QUANTIDADE']]);
                 }

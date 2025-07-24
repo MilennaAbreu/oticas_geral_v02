@@ -34,7 +34,9 @@ try{
         $curr=$st->fetch(PDO::FETCH_ASSOC);
         if(!$curr) throw new Exception('Não iniciado');
         $pdo->prepare("UPDATE CONCERTO_OCULOS_TEMPO SET FIM=NOW() WHERE ID=?")->execute([$curr['ID']]);
-        $diff=time()-strtotime($curr['INICIO']);
+        $stDiff=$pdo->prepare("SELECT TIMESTAMPDIFF(SECOND, ?, NOW())");
+        $stDiff->execute([$curr['INICIO']]);
+        $diff=(int)$stDiff->fetchColumn();
         $total+=$diff;
         $pdo->prepare("UPDATE CONCERTO_OCULOS SET DURACAO_FINAL_SEGUNDOS=? WHERE ID=?")->execute([$total,$id]);
         if($action==='stop'){
