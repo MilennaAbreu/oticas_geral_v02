@@ -100,9 +100,6 @@ try{
         if($tablePag){
             $pdo->prepare("DELETE FROM {$tablePag} WHERE ID_VENDA=?")->execute([$id]);
         }
-        if(tableExists($pdo,'CONTAS_A_RECEBER')){
-            $pdo->prepare("DELETE FROM CONTAS_A_RECEBER WHERE ID_VENDA=?")->execute([$id]);
-        }
     }else{
         $place=implode(',',array_fill(0,count($cols),'?'));
         $sql="INSERT INTO VENDAS (".implode(',', $cols).") VALUES ($place)";
@@ -136,13 +133,16 @@ try{
     }
 
     if(tableExists($pdo,'CONTAS_A_RECEBER')){
-        $stmtRec = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
-        foreach($pagamentos as $pg){
-            $qt = max(1,$pg['parcelas']);
-            $vp = round($pg['valor']/$qt,2);
-            for($i=0;$i<$qt;$i++){
-                $venc = date('Y-m-d', strtotime($pg['vencimento']." +{$i} month"));
-                $stmtRec->execute([$id,$id_cliente,$vp,$venc,'PENDENTE',$id_empresa]);
+        $pdo->prepare("DELETE FROM CONTAS_A_RECEBER WHERE ID_VENDA=?")->execute([$id]);
+        if($status === 'CONCLUÍDA'){
+            $stmtRec = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
+            foreach($pagamentos as $pg){
+                $qt = max(1,$pg['parcelas']);
+                $vp = round($pg['valor']/$qt,2);
+                for($i=0;$i<$qt;$i++){
+                    $venc = date('Y-m-d', strtotime($pg['vencimento']." +{$i} month"));
+                    $stmtRec->execute([$id,$id_cliente,$vp,$venc,'PENDENTE',$id_empresa]);
+                }
             }
         }
     }

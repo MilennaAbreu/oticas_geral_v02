@@ -194,9 +194,18 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         if(!$idVenda){
             throw new Exception('falha ao inserir venda');
         }
-        $stmtItem = $pdo->prepare("INSERT INTO ITENS_VENDA (ID_VENDA,ID_PRODUTO,QUANTIDADE,VALOR_UNITARIO,DESCONTO) VALUES (?,?,?,?,?)");
+        $colsItem = ['ID_VENDA','ID_PRODUTO','QUANTIDADE','VALOR_UNITARIO','DESCONTO'];
+        $placeItem = '?,?,?,?,?';
+        foreach(['DIOPTRIA','DNP','ALTURA','OBSERVACAO'] as $c){
+            if(columnExists($pdo,'ITENS_VENDA',$c)){ $colsItem[]=$c; $placeItem .= ',?'; }
+        }
+        $stmtItem = $pdo->prepare("INSERT INTO ITENS_VENDA (".implode(',', $colsItem).") VALUES ($placeItem)");
         foreach($itens as $it){
-            $stmtItem->execute([$idVenda,$it['ID_PRODUTO'],$it['QUANTIDADE'],$it['VALOR_UNITARIO'],$it['DESCONTO']]);
+            $valsItem = [$idVenda,$it['ID_PRODUTO'],$it['QUANTIDADE'],$it['VALOR_UNITARIO'],$it['DESCONTO']];
+            foreach(['DIOPTRIA','DNP','ALTURA','OBSERVACAO'] as $c){
+                if(in_array($c,$colsItem)) $valsItem[] = $it[$c] ?? '';
+            }
+            $stmtItem->execute($valsItem);
         }
 
         $tablePag = tableExists($pdo,'VENDAS_PAGAMENTOS')
@@ -228,17 +237,6 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             $stmtPag->execute($valsPg);
         }
 
-        if(tableExists($pdo,'CONTAS_A_RECEBER')){
-            $stmtRec = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
-            foreach($pagamentos as $pg){
-                $qt = max(1,$pg['parcelas']);
-                $vp = round($pg['valor']/$qt,2);
-                for($i=0;$i<$qt;$i++){
-                    $venc = date('Y-m-d', strtotime($pg['vencimento']." +{$i} month"));
-                    $stmtRec->execute([$idVenda,$_SESSION['venda']['ID_CLIENTE'],$vp,$venc,'PENDENTE',$_SESSION['venda']['ID_EMPRESA']]);
-                }
-            }
-        }
         if(tableExists($pdo,'FIDELIDADE_CLIENTE')){
             $pts = $valorTotal >= 500 ? 100 : 0;
             if($pts > 0){

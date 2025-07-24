@@ -14,6 +14,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $qtds     = $_POST['quantidade'] ?? [];
     $valores  = $_POST['valor_unitario'] ?? [];
     $descontos= $_POST['desconto'] ?? [];
+    $dioptrias = $_POST['dioptria'] ?? [];
+    $dnps      = $_POST['dnp'] ?? [];
+    $alturas   = $_POST['altura'] ?? [];
+    $obsItens  = $_POST['obs_item'] ?? [];
     $itens = [];
     for($i=0; $i<count($produtos); $i++){
         if(!$produtos[$i]) continue;
@@ -21,7 +25,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             'ID_PRODUTO'    => $produtos[$i],
             'QUANTIDADE'    => (float)$qtds[$i],
             'VALOR_UNITARIO'=> (float)str_replace(',', '.', $valores[$i]),
-            'DESCONTO'      => (float)str_replace(',', '.', $descontos[$i])
+            'DESCONTO'      => (float)str_replace(',', '.', $descontos[$i]),
+            'DIOPTRIA'      => $dioptrias[$i] ?? '',
+            'DNP'           => $dnps[$i] ?? '',
+            'ALTURA'        => $alturas[$i] ?? '',
+            'OBSERVACAO'    => $obsItens[$i] ?? ''
         ];
     }
     $_SESSION['venda']['itens'] = $itens;
@@ -30,9 +38,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 }
 
 $empresaId = $_SESSION['venda']['ID_EMPRESA'];
-$stmtProd = $pdo->prepare("SELECT p.ID,p.NOME,p.CODIGO,p.UNIDADE_MEDIDA,p.ESTOQUE_ATUAL,p.VALOR_UNITARIO,IFNULL(m.NOME,'') AS MARCA
+$stmtProd = $pdo->prepare("SELECT p.ID,p.NOME,p.CODIGO,p.UNIDADE_MEDIDA,p.ESTOQUE_ATUAL,p.VALOR_UNITARIO,IFNULL(m.NOME,'') AS MARCA, c.NOME AS CATEGORIA
                             FROM PRODUTO p
                             LEFT JOIN MARCA_PRODUTO m ON p.ID_MARCA = m.ID
+                            LEFT JOIN CATEGORIA_PRODUTO c ON p.ID_CATEGORIA=c.ID
                             WHERE p.ID_EMPRESA=?
                             ORDER BY p.NOME");
 $stmtProd->execute([$empresaId]);
@@ -61,13 +70,13 @@ include 'header.php';
         </tr>
       </thead>
       <tbody id="itemRows">
-        <?php foreach($itens as $i): $p = $prodMap[$i['ID_PRODUTO']] ?? null; ?>
-        <tr>
+        <?php foreach($itens as $i): $p = $prodMap[$i['ID_PRODUTO']] ?? null; $cat = $p['CATEGORIA'] ?? ''; ?>
+        <tr class="itemRow">
           <td>
             <select name="produto_id[]" class="border p-1 rounded w-full md:w-80" style="min-width:16rem" onchange="updateProd(this)">
               <option value="">Selecione</option>
               <?php foreach($produtos as $prod): ?>
-                <option value="<?= $prod['ID'] ?>" data-unidade="<?= $prod['UNIDADE_MEDIDA'] ?>" data-estoque="<?= $prod['ESTOQUE_ATUAL'] ?>" data-valor="<?= $prod['VALOR_UNITARIO'] ?>" <?= $i['ID_PRODUTO']==$prod['ID']?'selected':'' ?>><?= htmlspecialchars($prod['NOME'].' - ('.$prod['MARCA'].') - '.$prod['CODIGO']) ?></option>
+                <option value="<?= $prod['ID'] ?>" data-unidade="<?= $prod['UNIDADE_MEDIDA'] ?>" data-estoque="<?= $prod['ESTOQUE_ATUAL'] ?>" data-valor="<?= $prod['VALOR_UNITARIO'] ?>" data-cat="<?= htmlspecialchars($prod['CATEGORIA']) ?>" <?= $i['ID_PRODUTO']==$prod['ID']?'selected':'' ?>><?= htmlspecialchars($prod['NOME'].' - ('.$prod['MARCA'].') - '.$prod['CODIGO']) ?></option>
               <?php endforeach; ?>
             </select>
           </td>
@@ -77,6 +86,16 @@ include 'header.php';
           <td><input type="text" name="valor_unitario[]" value="<?= $i['VALOR_UNITARIO'] ?>" class="border p-1 w-full" onchange="calc()"></td>
           <td><input type="text" name="desconto[]" value="<?= $i['DESCONTO'] ?>" class="border p-1 w-full" onchange="calc()"></td>
           <td><button type="button" onclick="removeRow(this)" class="text-red-600">-</button></td>
+        </tr>
+        <tr class="lenteRow <?= strtoupper($cat)=='LENTE' ? '' : 'hidden' ?>">
+          <td colspan="7" class="p-2 bg-gray-50">
+            <div class="flex flex-wrap gap-2">
+              <input type="text" name="dioptria[]" placeholder="Dioptria" value="<?= htmlspecialchars($i['DIOPTRIA'] ?? '') ?>" class="border p-1 rounded md:w-40">
+              <input type="text" name="dnp[]" placeholder="DNP" value="<?= htmlspecialchars($i['DNP'] ?? '') ?>" class="border p-1 rounded md:w-28">
+              <input type="text" name="altura[]" placeholder="Altura" value="<?= htmlspecialchars($i['ALTURA'] ?? '') ?>" class="border p-1 rounded md:w-28">
+              <input type="text" name="obs_item[]" placeholder="Observação" value="<?= htmlspecialchars($i['OBSERVACAO'] ?? '') ?>" class="border p-1 rounded flex-1">
+            </div>
+          </td>
         </tr>
         <?php endforeach; ?>
       </tbody>
@@ -96,10 +115,11 @@ include 'header.php';
 <script>
 const produtos = <?= json_encode($produtos) ?>;
 function optionHtml(p){
-  return `<option value="${p.ID}" data-unidade="${p.UNIDADE_MEDIDA}" data-estoque="${p.ESTOQUE_ATUAL}" data-valor="${p.VALOR_UNITARIO}">${p.NOME} - (${p.MARCA}) - ${p.CODIGO}</option>`;
+  return `<option value="${p.ID}" data-unidade="${p.UNIDADE_MEDIDA}" data-estoque="${p.ESTOQUE_ATUAL}" data-valor="${p.VALOR_UNITARIO}" data-cat="${p.CATEGORIA}">${p.NOME} - (${p.MARCA}) - ${p.CODIGO}</option>`;
 }
 function addRow(){
-  const tr = document.createElement('tr');
+  const tr=document.createElement('tr');
+  tr.className='itemRow';
   tr.innerHTML = `<td><select name="produto_id[]" class="border p-1 rounded w-full md:w-80" style="min-width:16rem" onchange="updateProd(this)">
     <option value="">Selecione</option>
     ${produtos.map(optionHtml).join('')}
@@ -110,12 +130,25 @@ function addRow(){
   <td><input type="text" name="valor_unitario[]" value="0" class="border p-1 w-full" onchange="calc()"></td>
   <td><input type="text" name="desconto[]" value="0" class="border p-1 w-full" onchange="calc()"></td>
   <td><button type="button" onclick="removeRow(this)" class="text-red-600">-</button></td>`;
-  document.getElementById('itemRows').appendChild(tr);
+  const lens=document.createElement('tr');
+  lens.className='lenteRow hidden';
+  lens.innerHTML=`<td colspan="7" class="p-2 bg-gray-50"><div class="flex flex-wrap gap-2">
+      <input type="text" name="dioptria[]" placeholder="Dioptria" class="border p-1 rounded md:w-40">
+      <input type="text" name="dnp[]" placeholder="DNP" class="border p-1 rounded md:w-28">
+      <input type="text" name="altura[]" placeholder="Altura" class="border p-1 rounded md:w-28">
+      <input type="text" name="obs_item[]" placeholder="Observação" class="border p-1 rounded flex-1">
+    </div></td>`;
+  const tbody=document.getElementById('itemRows');
+  tbody.appendChild(tr);
+  tbody.appendChild(lens);
   $(tr).find('select').select2({width:'100%'});
   updateProd(tr.querySelector('select'));
 }
 function removeRow(btn){
-  btn.parentElement.parentElement.remove();
+  const tr=btn.parentElement.parentElement;
+  const next=tr.nextElementSibling;
+  if(next && next.classList.contains('lenteRow')) next.remove();
+  tr.remove();
   calc();
 }
 function updateProd(sel){
@@ -127,11 +160,20 @@ function updateProd(sel){
   if(valor){
     tr.querySelector('[name="valor_unitario[]"]').value = valor;
   }
+  const lens=tr.nextElementSibling;
+  if(lens && lens.classList.contains('lenteRow')){
+    if((opt.dataset.cat||'').toUpperCase()==='LENTE'){
+      lens.classList.remove('hidden');
+    }else{
+      lens.classList.add('hidden');
+      lens.querySelectorAll('input').forEach(i=>i.value='');
+    }
+  }
   calc();
 }
 function calc(){
   let bruto=0, desc=0;
-  document.querySelectorAll('#itemRows tr').forEach(r=>{
+  document.querySelectorAll('#itemRows tr.itemRow').forEach(r=>{
     const q=parseFloat(r.querySelector('[name="quantidade[]"]').value)||0;
     const v=parseFloat(r.querySelector('[name="valor_unitario[]"]').value.replace(',','.'))||0;
     const d=parseFloat(r.querySelector('[name="desconto[]"]').value.replace(',','.'))||0;
