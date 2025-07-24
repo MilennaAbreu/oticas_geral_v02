@@ -8,11 +8,11 @@ $status = $_POST['status'] ?? '';
 if(!$id || !$status){ http_response_code(400); echo json_encode(['success'=>false,'error'=>'Dados incompletos']); exit; }
 try{
     $pdo->beginTransaction();
-    $st = $pdo->prepare("SELECT SITUACAO FROM CONSERTO_OCULOS WHERE ID=? FOR UPDATE");
+    $st = $pdo->prepare("SELECT SITUACAO FROM CONCERTO_OCULOS WHERE ID=? FOR UPDATE");
     $st->execute([$id]);
     $old = $st->fetchColumn();
     if(!$old){ throw new Exception('Conserto não encontrado'); }
-    $pdo->prepare("UPDATE CONSERTO_OCULOS SET SITUACAO=? WHERE ID=?")->execute([$status,$id]);
+    $pdo->prepare("UPDATE CONCERTO_OCULOS SET SITUACAO=? WHERE ID=?")->execute([$status,$id]);
     if(!in_array($old,['APROVADO','ENTREGUE']) && $status === 'APROVADO'){
         $it = $pdo->prepare("SELECT ID_PRODUTO, QUANTIDADE FROM CONSERTO_OCULOS_ITENS WHERE ID_CONCERTO=?");
         $it->execute([$id]);
