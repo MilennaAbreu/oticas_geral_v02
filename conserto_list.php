@@ -11,6 +11,7 @@ $sql = "SELECT c.ID,
                cl.CONTATO AS TELEFONE_CONTATO,
                DATE_FORMAT(c.DATA_ENTRADA,'%d/%m/%Y') AS DATA_ENTRADA,
                DATE_FORMAT(c.PREVISAO_ENTREGA,'%d/%m/%Y') AS PREVISAO_ENTRADA,
+               c.PROBLEMA_DESCRITO,
                c.DURACAO_FINAL_SEGUNDOS,
                c.SITUACAO,
                UNIX_TIMESTAMP(t.INICIO) AS INICIO_TS
@@ -29,7 +30,7 @@ include 'header.php';
     <thead>
       <tr>
         <th>ID</th><th>Cliente</th><th>Usuário</th><th>Empresa</th>
-        <th>Contato</th><th>Data Entrada</th><th>Previsão Entrega</th><th>Status</th>
+        <th>Contato</th><th>Data Entrada</th><th>Previsão Entrega</th><th>Problema</th><th>Status</th>
         <th>Ações</th><th>Tempo</th>
       </tr>
     </thead>
@@ -43,6 +44,7 @@ include 'header.php';
         <td><?= htmlspecialchars($r['TELEFONE_CONTATO']) ?></td>
         <td><?= $r['DATA_ENTRADA'] ?></td>
         <td><?= $r['PREVISAO_ENTRADA'] ?></td>
+        <td><?= htmlspecialchars($r['PROBLEMA_DESCRITO']) ?></td>
         <td>
           <div class="flex items-center gap-1">
             <select id="sit_<?= $r['ID'] ?>" class="border p-1 rounded status-select bg-opacity-20">

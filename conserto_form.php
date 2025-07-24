@@ -19,6 +19,7 @@ $cep_entrega = $_POST['cep_entrega'] ?? '';
 $rua_entrega = $_POST['rua_entrega'] ?? '';
 $bairro_entrega = $_POST['bairro_entrega'] ?? '';
 $id_cidade = $_POST['id_cidade'] ?? '';
+$problema = $_POST['problema_descrito'] ?? '';
 $obs = $_POST['observacao'] ?? '';
 $erro = '';
 
@@ -64,7 +65,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
         $total = $valorProdutos + $valorConserto + $freteValor - (float)str_replace(',','.', $desconto);
         try{
             $pdo->beginTransaction();
-            $sql = "INSERT INTO CONCERTO_OCULOS (ID_CLIENTE,ID_USUARIO,ID_EMPRESA,ID_FRETE,DATA_ENTRADA,PREVISAO_ENTREGA,TEMPO_PREVISTO,DESCONTO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,SITUACAO,OBSERVACAO,DURACAO_FINAL_SEGUNDOS) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, ?,0)";
+            $sql = "INSERT INTO CONCERTO_OCULOS (ID_CLIENTE,ID_USUARIO,ID_EMPRESA,ID_FRETE,DATA_ENTRADA,PREVISAO_ENTREGA,TEMPO_PREVISTO,PROBLEMA_DESCRITO,DESCONTO,CEP_ENTREGA,RUA_ENTREGA,BAIRRO_ENTREGA,ID_CIDADE,SITUACAO,OBSERVACAO,DURACAO_FINAL_SEGUNDOS) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?,0)";
             $pdo->prepare($sql)->execute([
                 $id_cliente,
                 $_SESSION['user'],
@@ -73,6 +74,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['salvar'])){
                 $data_entrada,
                 $prev_entrega,
                 $tempo_previsto,
+                $problema,
                 str_replace(',','.', $desconto),
                 preg_replace('/\D/','',$cep_entrega),
                 $rua_entrega,
@@ -196,6 +198,10 @@ include 'header.php';
           <option value="<?= $ci['ID'] ?>" <?= $id_cidade==$ci['ID']?'selected':'' ?>><?= htmlspecialchars($ci['NOME']) ?></option>
         <?php endforeach; ?>
       </select>
+    </div>
+    <div class="md:col-span-2">
+      <label class="block mb-1">Problema Descrito</label>
+      <textarea name="problema_descrito" class="border p-2 rounded w-full" rows="3"><?= htmlspecialchars($problema) ?></textarea>
     </div>
     <div class="md:col-span-2">
       <label class="block mb-1">Observação</label>
