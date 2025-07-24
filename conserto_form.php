@@ -161,7 +161,7 @@ include 'header.php';
     </div>
     <div>
       <label class="block mb-1">Valor Hora</label>
-      <input type="number" step="0.01" name="valor_hora" value="<?= htmlspecialchars($valor_hora) ?>" class="border p-2 rounded w-full" oninput="calcTot()">
+      <input type="number" step="any" name="valor_hora" value="<?= htmlspecialchars($valor_hora) ?>" class="border p-2 rounded w-full" oninput="calcTot()">
     </div>
     <div>
       <label class="block mb-1">Desconto</label>
@@ -178,7 +178,7 @@ include 'header.php';
     </div>
     <div>
       <label class="block mb-1">CEP Entrega</label>
-      <input type="text" name="cep_entrega" value="<?= htmlspecialchars($cep_entrega) ?>" class="border p-2 rounded w-full" data-mask="cep" onblur="updateFrete()">
+      <input type="text" name="cep_entrega" value="<?= htmlspecialchars($cep_entrega) ?>" class="border p-2 rounded w-full" data-mask="cep" oninput="updateFrete()">
     </div>
     <div>
       <label class="block mb-1">Rua Entrega</label>
@@ -217,7 +217,7 @@ include 'header.php';
             <?php endforeach; ?>
           </select>
         </td>
-        <td><input type="number" name="quantidade[]" value="1" class="border p-1 w-20" onchange="calcTot()"></td>
+        <td><input type="number" name="quantidade[]" value="1" class="border p-1 w-20" oninput="calcTot()"></td>
         <td><button type="button" class="text-red-600" onclick="this.closest('tr').remove();calcTot();">-</button></td></tr>
       </template>
     </div>
@@ -266,8 +266,33 @@ function calcTot(){
   const desc=parseFloat(document.querySelector('[name=desconto]').value)||0; document.getElementById('vDesc').textContent=desc.toFixed(2);
   const total=vProd+vCons+freteAtual-desc; document.getElementById('vTot').textContent=total.toFixed(2);
 }
-addRow();
-calcTot();
-updateFrete();
+document.addEventListener('DOMContentLoaded',()=>{
+  addRow();
+  calcTot();
+  updateFrete();
+  if(document.querySelector('[name=id_cliente]').value){
+    carregaEnderecoCliente.call(document.querySelector('[name=id_cliente]'));
+  }
+});
+document.querySelector('[name=id_cliente]').addEventListener('change',carregaEnderecoCliente);
+function carregaEnderecoCliente(){
+  const id=this.value;
+  if(!id) return;
+  fetch('busca_cliente.php?id='+id)
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d) return;
+      document.querySelector('[name=cep_entrega]').value=d.CEP||'';
+      document.querySelector('[name=rua_entrega]').value=d.RUA||'';
+      document.querySelector('[name=bairro_entrega]').value=d.BAIRRO||'';
+      if(d.ID_CIDADE){
+        const sel=document.querySelector('[name=id_cidade]');
+        sel.value=d.ID_CIDADE;
+        if(window.$) $(sel).trigger('change');
+      }
+      updateFrete();
+    });
+}
+document.querySelector('[name=cep_entrega]').addEventListener('input',updateFrete);
 </script>
 <?php include 'footer.php'; ?>
