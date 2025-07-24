@@ -41,6 +41,14 @@ try{
     }
     $pdo->commit();
     echo json_encode(['success'=>true]);
+}catch(PDOException $e){
+    $pdo->rollBack();
+    http_response_code(500);
+    $msg = 'Erro de banco de dados: ' . $e->getMessage();
+    if($e->getCode()==='42S02'){
+        $msg .= " (verifique a tabela '{$tbl}' e a coluna '{$col}')";
+    }
+    echo json_encode(['success'=>false,'error'=>$msg]);
 }catch(Exception $e){
     $pdo->rollBack();
     http_response_code(500);
