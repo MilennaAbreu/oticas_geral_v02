@@ -57,14 +57,18 @@ if($id){
             }
         }
         $hasParc = columnExists($pdo,$tablePag,'PARCELAS');
-        $sql = "SELECT {$colMet} AS METODO_ID, VALOR".($hasParc?", PARCELAS":"")." FROM {$tablePag} WHERE ID_VENDA=?";
+        $hasVenc = columnExists($pdo,$tablePag,'DATA_VENC_PARCELA');
+        $sql = "SELECT {$colMet} AS METODO_ID, VALOR".
+               ($hasParc?", PARCELAS":"").
+               ($hasVenc?", DATA_VENC_PARCELA":"").
+               " FROM {$tablePag} WHERE ID_VENDA=?";
         $st = $pdo->prepare($sql);
         $st->execute([$id]);
         $pagamentos = $st->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 if(!$pagamentos){
-    $pagamentos = [['METODO_ID'=>'','VALOR'=>'','PARCELAS'=>1]];
+    $pagamentos = [['METODO_ID'=>'','VALOR'=>'','PARCELAS'=>1,'DATA_VENC_PARCELA'=>date('Y-m-d')]];
 }
 
 $clientes = $pdo->query("SELECT ID, CPF, NOME FROM CLIENTE ORDER BY NOME")->fetchAll(PDO::FETCH_ASSOC);
@@ -169,6 +173,7 @@ include 'header.php';
         <div class="w-72">Método/Condição</div>
         <div class="w-32">Valor</div>
         <div class="w-20">Parcelas</div>
+        <div class="w-36">Vencimento</div>
       </div>
       <div id="pgList" class="space-y-2"></div>
       <div class="mt-2 text-right">Total pagamentos: R$ <span id="totPg">0,00</span></div>
@@ -185,6 +190,7 @@ include 'header.php';
           </select>
           <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32" data-mask="money">
           <input type="number" name="parcelas_pagamento[]" value="1" min="1" class="border p-2 rounded w-20">
+          <input type="date" name="vencimentos_pagamento[]" class="border p-2 rounded w-36">
           <button type="button" class="rmPg text-red-600 px-2">Remover</button>
         </div>
       </template>
@@ -301,15 +307,17 @@ function saveCliente(){
 const pgList=document.getElementById('pgList');
 const tpl=document.getElementById('tplPg').content.firstElementChild;
 function formatPgVal(i){const v=parseFloat(i.value.replace(',', '.'));if(!isNaN(v)) i.value=v.toFixed(2).replace('.', ',');}
-function addPg(met,valor,parc){
+function addPg(met,valor,parc,venc){
   const c=tpl.cloneNode(true);
   if(met) c.querySelector('select').value=met;
   if(valor) {c.querySelector('[name="valores_pagamento[]"]').value=parseFloat(valor).toFixed(2).replace('.', ',');}
   if(parc) c.querySelector('[name="parcelas_pagamento[]"]').value=parc;
+  c.querySelector('[name="vencimentos_pagamento[]"]').value=venc||new Date().toISOString().slice(0,10);
   c.querySelector('.rmPg').addEventListener('click',()=>{jQuery(c).find('select').select2('destroy');c.remove();updatePgTot();});
   const val=c.querySelector('[name="valores_pagamento[]"]');
   val.addEventListener('blur',()=>{formatPgVal(val);updatePgTot();});
   if(window.jQuery&&jQuery.fn.mask){jQuery(val).mask('#.##0,00',{reverse:true});}
+  c.querySelector('[name="vencimentos_pagamento[]"]').addEventListener('change',updatePgTot);
   pgList.appendChild(c);
   if(window.jQuery&&jQuery.fn.select2){jQuery(c).find('select').select2({width:'100%'});}
   updatePgTot();
@@ -320,8 +328,8 @@ function updatePgTot(){
 }
 document.getElementById('addPg').addEventListener('click',()=>addPg());
 document.addEventListener('DOMContentLoaded',()=>{
-  <?php foreach($pagamentos as $p): $jmc = $jmcMap[$p['METODO_ID'].'_'.$sale['ID_CONDICAO_PAGAMENTO']] ?? ''; ?>
-    addPg('<?= $jmc ?>','<?= $p['VALOR'] ?>','<?= $p['PARCELAS'] ?? 1 ?>');
+  <?php foreach($pagamentos as $p): $jmc = $jmcMap[$p['METODO_ID'].'_'.$sale['ID_CONDICAO_PAGAMENTO']] ?? ''; $venc=$p['DATA_VENC_PARCELA'] ?? ''; ?>
+    addPg('<?= $jmc ?>','<?= $p['VALOR'] ?>','<?= $p['PARCELAS'] ?? 1 ?>','<?= $venc ?>');
   <?php endforeach; ?>
 });
 </script>

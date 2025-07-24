@@ -9,6 +9,7 @@ $id_condicao = $_POST['id_condicao_pagamento'] ?? null;
 $jurosSel = $_POST['juros_metodo_condicao'] ?? [];
 $valoresPag = $_POST['valores_pagamento'] ?? [];
 $parcelasPag = $_POST['parcelas_pagamento'] ?? [];
+$vencimentosPag = $_POST['vencimentos_pagamento'] ?? [];
 $firstJmc = $jurosSel[0] ?? null;
 $id_metodo = null;
 $jmcDados = $pdo->query(
@@ -29,10 +30,6 @@ foreach($jmcDados as $j){
 $id_frete    = $_POST['id_frete'] ?? null;
 $data_entrega = $_POST['data_entrega'] ?: null;
 $data_venda   = $_POST['data_venda'] ?: null;
-$data_vencimento = trim($_POST['data_vencimento'] ?? '');
-if(empty($data_vencimento)){
-    $data_vencimento = date('Y-m-d');
-}
 $valor_venda = str_replace(',', '.', $_POST['valor_venda'] ?? '0');
 $desconto    = str_replace(',', '.', $_POST['desconto'] ?? '0');
 $valor_total = str_replace(',', '.', $_POST['valor_total'] ?? '0');
@@ -53,7 +50,8 @@ $parcelas = 1;
 foreach($jurosSel as $i=>$jmcId){
     $val = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
     $par = isset($parcelasPag[$i]) ? (int)$parcelasPag[$i] : 1;
-    if(!$jmcId || $val===''){
+    $venc = $vencimentosPag[$i] ?? '';
+    if(!$jmcId || $val==='' || !$venc){
         http_response_code(400);
         exit('Pagamento incompleto');
     }
@@ -64,7 +62,7 @@ foreach($jurosSel as $i=>$jmcId){
     } else { $jurosLinha = 0; }
     $juros_valor = ($juros_valor ?? 0) + $val * ($jurosLinha/100);
     $parcelas = max($parcelas,$par);
-    $pagamentos[] = ['metodo_id'=>$dados['METODO_ID'] ?? null,'valor'=>$val,'parcelas'=>$par];
+    $pagamentos[] = ['metodo_id'=>$dados['METODO_ID'] ?? null,'valor'=>$val,'parcelas'=>$par,'vencimento'=>$venc];
 }
 $somaPag = array_sum(array_column($pagamentos,'valor'));
 if(round($somaPag,2) != round($valor_total,2)){
@@ -75,7 +73,6 @@ $valor_liquido = $valor_total;
 
 $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
 $hasDataVenda = columnExists($pdo,'VENDAS','DATA_VENDA');
-$hasVencParc = columnExists($pdo,"VENDAS","DATA_VENCIMENTO_PARCELA");
 $hasParcelas = columnExists($pdo,"VENDAS","NUMERO_PARCELAS");
 $hasFormaPag = columnExists($pdo,"VENDAS","FORMA_PAGAMENTO");
 
@@ -84,7 +81,6 @@ $cols=['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO','ID_METODO_PAGAMENTO','
 $vals=[$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado];
 if($hasDataVenda){$cols[]='DATA_VENDA';$vals[]=$data_venda;}
 if($hasParcelas){$cols[]='NUMERO_PARCELAS';$vals[]=$parcelas;}
-if($hasVencParc){$cols[]='DATA_VENCIMENTO_PARCELA';$vals[]=$data_vencimento;}
 if($hasFormaPag){$cols[]='FORMA_PAGAMENTO';$vals[]=$parcelas>1?'PARCELADO':'À VISTA';}
 $cols=array_merge($cols,['VALOR_VENDA','VALOR_TOTAL']);
 $vals=array_merge($vals,[$valor_venda,$valor_total]);
@@ -126,26 +122,28 @@ try{
         }
     }
     $hasParcPg = columnExists($pdo,$tablePag,'PARCELAS');
-    $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR".($hasParcPg? ', PARCELAS':'');
-    $placePg = $hasParcPg ? '?,?,?,?' : '?,?,?';
+    $hasVencPg = columnExists($pdo,$tablePag,'DATA_VENC_PARCELA');
+    $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR";
+    $placePg = '?,?,?';
+    if($hasParcPg){ $colsPg .= ', PARCELAS'; $placePg .= ',?'; }
+    if($hasVencPg){ $colsPg .= ', DATA_VENC_PARCELA'; $placePg .= ',?'; }
     $stmtPg = $pdo->prepare("INSERT INTO {$tablePag} ($colsPg) VALUES ($placePg)");
     foreach($pagamentos as $pg){
         $valsPg = [$id,$pg['metodo_id'],$pg['valor']];
         if($hasParcPg) $valsPg[]=$pg['parcelas'];
+        if($hasVencPg) $valsPg[]=$pg['vencimento'];
         $stmtPg->execute($valsPg);
     }
 
     if(tableExists($pdo,'CONTAS_A_RECEBER')){
         $stmtRec = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
-        $parcelasMapa=[];
         foreach($pagamentos as $pg){
-            $qt=max(1,$pg['parcelas']);
-            $vp=round($pg['valor']/$qt,2);
-            for($i=0;$i<$qt;$i++){$parcelasMapa[$i]=($parcelasMapa[$i]??0)+$vp;}
-        }
-        foreach($parcelasMapa as $i=>$valP){
-            $venc=date('Y-m-d',strtotime("$data_vencimento +{$i} month"));
-            $stmtRec->execute([$id,$id_cliente,$valP,$venc,'PENDENTE',$id_empresa]);
+            $qt = max(1,$pg['parcelas']);
+            $vp = round($pg['valor']/$qt,2);
+            for($i=0;$i<$qt;$i++){
+                $venc = date('Y-m-d', strtotime($pg['vencimento']." +{$i} month"));
+                $stmtRec->execute([$id,$id_cliente,$vp,$venc,'PENDENTE',$id_empresa]);
+            }
         }
     }
     if(tableExists($pdo,'FIDELIDADE_CLIENTE')){

@@ -41,6 +41,7 @@ function distanciaKm($cep1,$cep2){
 $jurosSel   = $_POST['juros_metodo_condicao'] ?? [];
 $valoresPag  = $_POST['valores_pagamento'] ?? [];
 $parcelasPag = $_POST['parcelas_pagamento'] ?? [];
+$vencPag     = $_POST['vencimentos_pagamento'] ?? [];
 
 // dados de juros/metodo/condicao
 $jmcDados = $pdo->query(
@@ -78,10 +79,6 @@ $ruaEntrega    = $_POST['rua_entrega'] ?? $cliente['RUA'];
 $bairroEntrega = $_POST['bairro_entrega'] ?? $cliente['BAIRRO'];
 $idCidade      = $_POST['id_cidade'] ?? $cliente['ID_CIDADE'];
 $descGeral     = str_replace(',', '.', $_POST['desconto_geral'] ?? '0');
-$dataVenc      = trim($_POST['data_vencimento'] ?? '');
-if(empty($dataVenc)){
-    $dataVenc = date('Y-m-d');
-}
 $distanciaCalc = 0;
 
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
@@ -133,8 +130,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     foreach($jurosSel as $i => $jmcId){
         $val = $valoresPag[$i] ?? '';
         $par = $parcelasPag[$i] ?? '1';
-        if(!$jmcId || $val===''){
-            $error = 'Informe método e valor para todos os pagamentos';
+        $venc = $vencPag[$i] ?? '';
+        if(!$jmcId || $val==='' || !$venc){
+            $error = 'Informe método, valor e vencimento para todos os pagamentos';
             break;
         }
         $metId = isset($jmcMap[$jmcId]) ? $jmcMap[$jmcId]['METODO_ID'] : null;
@@ -143,7 +141,8 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             'metodo_id' => $metId,
             'condicao_id' => $cond,
             'valor' => (float)str_replace(',', '.', $val),
-            'parcelas' => (int)$par ?: 1
+            'parcelas' => (int)$par ?: 1,
+            'vencimento' => $venc
         ];
     }
     $somaPag = array_sum(array_column($pagamentos,'valor'));
@@ -157,7 +156,6 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
     try {
         $hasLiquido  = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
         $hasParc     = columnExists($pdo,'VENDAS','NUMERO_PARCELAS');
-        $hasVenc     = columnExists($pdo,'VENDAS','DATA_VENCIMENTO_PARCELA');
         $hasForma    = columnExists($pdo,'VENDAS','FORMA_PAGAMENTO');
         $hasDataVenda= columnExists($pdo,'VENDAS','DATA_VENDA');
         $cols = ['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO'];
@@ -177,7 +175,6 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
         $cols[] = 'JUROS_APLICADO';
         $vals[] = $juros;
         if($hasParc){ $cols[]='NUMERO_PARCELAS'; $vals[]=$parcelas; }
-        if($hasVenc){ $cols[]='DATA_VENCIMENTO_PARCELA'; $vals[]=$dataVenc; }
         if($hasForma){ $cols[]='FORMA_PAGAMENTO'; $vals[]=$parcelas>1?'PARCELADO':'À VISTA'; }
         $cols = array_merge($cols,['VALOR_VENDA','VALOR_TOTAL']);
         $vals = array_merge($vals,[$valorVenda,$valorTotal]);
@@ -218,28 +215,28 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['finalizar'])){
             }
         }
         $hasParcPg = columnExists($pdo,$tablePag,'PARCELAS');
-        $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR" . ($hasParcPg? ', PARCELAS':'');
-        $placePg = $hasParcPg ? '?,?,?,?' : '?,?,?';
+        $hasVencPg = columnExists($pdo,$tablePag,'DATA_VENC_PARCELA');
+        $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR";
+        $placePg = '?,?,?';
+        if($hasParcPg){ $colsPg .= ', PARCELAS'; $placePg .= ',?'; }
+        if($hasVencPg){ $colsPg .= ', DATA_VENC_PARCELA'; $placePg .= ',?'; }
         $stmtPag = $pdo->prepare("INSERT INTO {$tablePag} ($colsPg) VALUES ($placePg)");
         foreach($pagamentos as $pg){
             $valsPg = [$idVenda,$pg['metodo_id'],$pg['valor']];
             if($hasParcPg) $valsPg[] = $pg['parcelas'];
+            if($hasVencPg) $valsPg[] = $pg['vencimento'];
             $stmtPag->execute($valsPg);
         }
 
         if(tableExists($pdo,'CONTAS_A_RECEBER')){
             $stmtRec = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
-            $parcelasMapa = [];
             foreach($pagamentos as $pg){
                 $qt = max(1,$pg['parcelas']);
                 $vp = round($pg['valor']/$qt,2);
                 for($i=0;$i<$qt;$i++){
-                    $parcelasMapa[$i] = ($parcelasMapa[$i]??0) + $vp;
+                    $venc = date('Y-m-d', strtotime($pg['vencimento']." +{$i} month"));
+                    $stmtRec->execute([$idVenda,$_SESSION['venda']['ID_CLIENTE'],$vp,$venc,'PENDENTE',$_SESSION['venda']['ID_EMPRESA']]);
                 }
-            }
-            foreach($parcelasMapa as $i=>$valP){
-                $venc = date('Y-m-d', strtotime("$dataVenc +{$i} month"));
-                $stmtRec->execute([$idVenda,$_SESSION['venda']['ID_CLIENTE'],$valP,$venc,'PENDENTE',$_SESSION['venda']['ID_EMPRESA']]);
             }
         }
         if(tableExists($pdo,'FIDELIDADE_CLIENTE')){
@@ -352,9 +349,6 @@ include 'header.php';
       </select>
     </div>
     <div>
-      <label class="block mb-1">Data Vencimento 1ª Parcela</label>
-      <input type="date" name="data_vencimento" value="<?= htmlspecialchars($dataVenc) ?>" class="border p-2 w-full rounded">
-    </div>
     <div>
       <label class="block mb-1">Desconto Geral</label>
       <input type="text" name="desconto_geral" value="<?= htmlspecialchars($descGeral) ?>" class="border p-2 w-full rounded" oninput="calcTot()">
@@ -375,6 +369,7 @@ include 'header.php';
         <div class="w-72">Método/Condição</div>
         <div class="w-32">Valor</div>
         <div class="w-20">Parcelas</div>
+        <div class="w-36">Vencimento</div>
       </div>
       <div id="pagamentos" class="space-y-2"></div>
       <div class="mt-2 text-right">Total pagamentos: R$ <span id="totPagamentos">0,00</span></div>
@@ -391,6 +386,7 @@ include 'header.php';
           </select>
           <input type="text" name="valores_pagamento[]" class="border p-2 rounded w-32 money" data-mask="money">
           <input type="number" name="parcelas_pagamento[]" value="1" min="1" class="border p-2 rounded w-20">
+          <input type="date" name="vencimentos_pagamento[]" class="border p-2 rounded w-36">
           <button type="button" class="removePagamento text-red-600 px-2">Remover</button>
         </div>
       </template>
@@ -431,6 +427,9 @@ function addPagamento(){
   }
   const parcInput = clone.querySelector('input[name="parcelas_pagamento[]"]');
   parcInput.addEventListener('change',fetchJuros);
+  const vencInput = clone.querySelector('input[name="vencimentos_pagamento[]"]');
+  vencInput.value = new Date().toISOString().slice(0,10);
+  vencInput.addEventListener('change',updatePagamentoTotal);
   pagamentosDiv.appendChild(clone);
   if(window.jQuery&&jQuery.fn.select2){
     jQuery(clone).find('select').select2({width:'100%'});
@@ -497,14 +496,15 @@ function validatePagamentos(){
   const valores=[...document.querySelectorAll("[name=valores_pagamento[]]")].map(i=>{formatValor(i);return parseFloat(i.value.replace(",", "."))||0;});
   const parcelas=[...document.querySelectorAll("[name=parcelas_pagamento[]]")].map(i=>parseInt(i.value)||1);
   const conds=[...document.querySelectorAll("[name=juros_metodo_condicao[]]")].map(i=>i.value);
+  const vencs=[...document.querySelectorAll('[name=vencimentos_pagamento[]]')].map(i=>i.value);
   const soma=valores.reduce((a,b)=>a+b,0);
   const total=parseFloat(document.getElementById("vTotal").textContent.replace(",", "."))||0;
   if(Math.abs(soma-total)>0.01){
     alert("A soma dos pagamentos deve ser igual ao Valor Total");
     return false;
   }
-  if(parcelas.some(p=>p<1) || conds.some(c=>!c)){
-    alert("Quantidade de parcelas ou condição inválida");
+  if(parcelas.some(p=>p<1) || conds.some(c=>!c) || vencs.some(v=>!v)){
+    alert("Quantidade de parcelas, condição ou vencimento inválido");
     return false;
   }
   return true;
