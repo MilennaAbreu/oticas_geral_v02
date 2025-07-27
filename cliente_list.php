@@ -14,6 +14,7 @@ $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <table id="clienteTable" class="display w-full">
     <thead>
       <tr>
+        <th>Ações</th>
         <th>ID</th>
         <th>Nome</th>
         <th>CPF</th>
@@ -22,12 +23,15 @@ $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <th>Cidade</th>
         <th>Contato</th>
         <th>Status</th>
-        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
     <?php foreach($clientes as $c): ?>
       <tr>
+        <td class="table-actions">
+          <a href="cliente_form.php?id=<?= $c['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+          <a href="cliente_delete.php?id=<?= $c['id'] ?>" onclick="return confirm('Excluir este cliente?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
+        </td>
         <td class="border-t px-4 py-2"><?= $c['id'] ?></td>
         <td class="border-t px-4 py-2"><?= htmlspecialchars($c['nome']) ?></td>
         <td class="border-t px-4 py-2"><?= $c['cpf'] ?></td>
@@ -36,10 +40,6 @@ $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <td class="border-t px-4 py-2"><?= htmlspecialchars($c['cidade']) ?></td>
         <td class="border-t px-4 py-2"><?= htmlspecialchars($c['contato']) ?></td>
         <td class="border-t px-4 py-2"><?= htmlspecialchars($c['status']) ?></td>
-        <td class="table-actions">
-          <a href="cliente_form.php?id=<?= $c['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
-          <a href="cliente_delete.php?id=<?= $c['id'] ?>" onclick="return confirm('Excluir este cliente?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
-        </td>
       </tr>
     <?php endforeach; ?>
     </tbody>

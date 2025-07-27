@@ -185,6 +185,25 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('cidade-select').value = n.ID;
     });
 
+    async function setCidadeByNomeUF(nome, uf, selectEl) {
+        const cidades = await (await fetch(`${API_BASE}/cidades`)).json();
+        const m = cidades.find(c => c.NOME.toLowerCase() === nome.toLowerCase() && c.UF === uf);
+        if (m) selectEl.value = m.ID;
+    }
+    const cepInput = document.querySelector('#form-cliente input[name="cep"]');
+    if (cepInput) {
+        cepInput.addEventListener('blur', async () => {
+            const cep = cepInput.value.replace(/\D/g, '');
+            if (cep.length !== 8) return;
+            const data = await (await fetch(`https://viacep.com.br/ws/${cep}/json/`)).json();
+            if (data.erro) return;
+            const f = cepInput.form;
+            if (f.rua) f.rua.value = data.logradouro || '';
+            if (f.bairro) f.bairro.value = data.bairro || '';
+            if (f.id_cidade) await setCidadeByNomeUF(data.localidade, data.uf, f.id_cidade);
+        });
+    }
+
     // clientes
     async function loadClientes() {
         const data = await (await fetch(`${API_BASE}/clientes`)).json();

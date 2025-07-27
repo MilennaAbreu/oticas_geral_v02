@@ -37,11 +37,18 @@ $error = isset($_GET['erro']);
   <?php endif; ?>
   <table id="produtosTable" class="display w-full">
     <thead>
-      <tr><th>ID</th><th>Nome</th><th>Categoria</th><th>Tipo</th><th>Marca</th><th>Código</th><th>Un. Med.</th><th>Valor Compra</th><th>Valor Venda</th><th>Estoque</th><th>Empresa</th><th>Status</th><th>Imagem</th><th>Ações</th></tr>
+      <tr><th>Ações</th><th>ID</th><th>Nome</th><th>Categoria</th><th>Tipo</th><th>Marca</th><th>Código</th><th>Un. Med.</th><th>Valor Compra</th><th>Valor Venda</th><th>Estoque</th><th>Empresa</th><th>Status</th><th>Imagem</th></tr>
     </thead>
     <tbody>
     <?php foreach($items as $it): ?>
       <tr>
+        <td class="table-actions">
+          <a href="produtos_form.php?id=<?= $it['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
+          <a href="produtos_copy.php?id=<?= $it['ID'] ?>" class="edit" title="Copiar"><i class="fas fa-copy"></i></a>
+          <?php if($canDelete): ?>
+            <a href="produtos_delete.php?id=<?= $it['ID'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
+          <?php endif; ?>
+        </td>
         <td><?= $it['ID'] ?></td>
         <td><?= $it['NOME'] ?></td>
         <td><?= $it['CATEGORIA'] ?></td>
@@ -55,13 +62,6 @@ $error = isset($_GET['erro']);
         <td><?= $it['EMPRESA'] ?></td>
         <td><?= $it['STATUS'] ?></td>
         <td><?php if($it['IMAGEM']): ?><img src="uploads/<?= $it['IMAGEM'] ?>" width="50"><?php endif; ?></td>
-        <td class="table-actions">
-          <a href="produtos_form.php?id=<?= $it['ID'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
-          <a href="produtos_copy.php?id=<?= $it['ID'] ?>" class="edit" title="Copiar"><i class="fas fa-copy"></i></a>
-          <?php if($canDelete): ?>
-            <a href="produtos_delete.php?id=<?= $it['ID'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
-          <?php endif; ?>
-        </td>
       </tr>
     <?php endforeach; ?>
     </tbody>

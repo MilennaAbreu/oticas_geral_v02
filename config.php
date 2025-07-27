@@ -34,4 +34,61 @@ function columnExists(PDO $pdo, string $table, string $column): bool {
         return false;
     }
 }
+
+// Helper to verify table existence
+function tableExists(PDO $pdo, string $table): bool {
+    try {
+        $stmt = $pdo->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$table]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ? true : false;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+// Helper to detect the foreign key column name for consertos in CONSERTO_OCULOS_ITENS
+function consertoItemColumn(PDO $pdo): string {
+    static $col;
+    if ($col !== null) return $col;
+    $candidates = ['ID_CONCERTO', 'ID_CONSERTO'];
+    foreach ($candidates as $c) {
+        if (columnExists($pdo, 'CONSERTO_OCULOS_ITENS', $c)) {
+            $col = $c;
+            return $col;
+        }
+    }
+    // default to original name
+    $col = 'ID_CONCERTO';
+    return $col;
+}
+
+// Helper to detect table name for itens do conserto
+function consertoItemTable(PDO $pdo): string {
+    static $tbl;
+    if ($tbl !== null) return $tbl;
+    $candidates = ['CONSERTO_OCULOS_ITENS', 'CONCERTO_OCULOS_ITENS'];
+    foreach ($candidates as $t) {
+        if (tableExists($pdo, $t)) {
+            $tbl = $t;
+            return $tbl;
+        }
+    }
+    $tbl = 'CONSERTO_OCULOS_ITENS';
+    return $tbl;
+}
+
+// Detect column name for metodo de pagamento in VENDAS table
+function vendaMetodoColumn(PDO $pdo): ?string {
+    static $col;
+    if ($col !== null) return $col;
+    $candidates = ['ID_METODO_PAGAMENTO', 'ID_METODO', 'METODO_ID', 'ID_METODO_PAG', 'ID_METODO_PAGTO'];
+    foreach ($candidates as $c) {
+        if (columnExists($pdo, 'VENDAS', $c)) {
+            $col = $c;
+            return $col;
+        }
+    }
+    $col = null;
+    return $col;
+}
 ?>

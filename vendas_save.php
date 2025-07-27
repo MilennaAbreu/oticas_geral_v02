@@ -5,14 +5,12 @@ require_once 'auth.php';
 $id = $_POST['id'] ?? null;
 $id_cliente = $_POST['id_cliente'] ?? null;
 $id_usuario = $_POST['id_usuario'] ?? null;
-$id_condicao = $_POST['id_condicao_pagamento'] ?? null;
-$id_metodo   = $_POST['id_metodo_pagamento'] ?? null;
+$formasPag = $_POST['formas_pagamento'] ?? [];
+$valoresPag = $_POST['valores_pagamento'] ?? [];
+$id_metodo = $formasPag[0] ?? null;
 $id_frete    = $_POST['id_frete'] ?? null;
 $data_entrega = $_POST['data_entrega'] ?: null;
-$data_vencimento = trim($_POST['data_vencimento'] ?? '');
-if(empty($data_vencimento)){
-    $data_vencimento = date('Y-m-d');
-}
+$data_venda   = $_POST['data_venda'] ?: null;
 $valor_venda = str_replace(',', '.', $_POST['valor_venda'] ?? '0');
 $desconto    = str_replace(',', '.', $_POST['desconto'] ?? '0');
 $valor_total = str_replace(',', '.', $_POST['valor_total'] ?? '0');
@@ -26,57 +24,105 @@ $obs         = $_POST['observacao'] ?? null;
 $status      = $_POST['status'] ?? 'PENDENTE';
 $id_empresa  = $_POST['id_empresa'] ?? null;
 
-// busca juros aplicado conforme metodo e condicao
-$parcelas = 1;
-$juros_aplicado = 0;
-if($id_metodo && $id_condicao){
-    $st = $pdo->prepare(
-        "SELECT c.PARCELAS, j.JUROS_MENSAL
-           FROM CONDICAO_PAGAMENTO c
-           LEFT JOIN JUROS_METODO_CONDICAO j
-             ON j.ID_CONDICAO = c.ID
-            AND j.ID_METODO_PAGAMENTO = ?
-          WHERE c.ID = ?"
-    );
-    $st->execute([$id_metodo, $id_condicao]);
-    $row = $st->fetch(PDO::FETCH_ASSOC);
-    if($row){
-        $parcelas = (int)$row['PARCELAS'];
-        $juros_aplicado = (float)$row['JUROS_MENSAL'] * $parcelas;
+// monta pagamentos e calcula juros
+$pagamentos = [];
+$valor_liquido_calc = $valor_total;
+$pagamentos = [];
+foreach($formasPag as $i=>$met){
+    $val = isset($valoresPag[$i]) ? (float)str_replace(',', '.', $valoresPag[$i]) : 0;
+    if(!$met || $val===''){
+        http_response_code(400);
+        exit('Pagamento incompleto');
     }
+    if($i==0) $id_metodo = $met;
+    $pagamentos[] = ['metodo_id'=>$met,'valor'=>$val];
 }
-
-$valor_liquido = $valor_total * (1 - $juros_aplicado/100);
+$somaPag = array_sum(array_column($pagamentos,'valor'));
+if(round($somaPag,2) != round($valor_total,2)){
+    http_response_code(400); exit('Soma dos pagamentos difere do total');
+}
+$juros_aplicado = 0;
+$valor_liquido = $valor_total;
 
 $hasLiquido = columnExists($pdo,'VENDAS','VALOR_LIQUIDO');
-$hasVencParc = columnExists($pdo,"VENDAS","DATA_VENCIMENTO_PARCELA");
-$hasParcelas = columnExists($pdo,"VENDAS","NUMERO_PARCELAS");
+$hasDataVenda = columnExists($pdo,'VENDAS','DATA_VENDA');
 $hasFormaPag = columnExists($pdo,"VENDAS","FORMA_PAGAMENTO");
+$metColVenda = vendaMetodoColumn($pdo);
 
 // monta dinamicamente colunas e valores
-$cols=['ID_CLIENTE','ID_USUARIO','ID_CONDICAO_PAGAMENTO','ID_METODO_PAGAMENTO','JUROS_APLICADO'];
-$vals=[$id_cliente,$id_usuario,$id_condicao,$id_metodo,$juros_aplicado];
-if($hasParcelas){$cols[]='NUMERO_PARCELAS';$vals[]=$parcelas;}
-if($hasVencParc){$cols[]='DATA_VENCIMENTO_PARCELA';$vals[]=$data_vencimento;}
-if($hasFormaPag){$cols[]='FORMA_PAGAMENTO';$vals[]=$parcelas>1?'PARCELADO':'À VISTA';}
+$cols=['ID_CLIENTE','ID_USUARIO','JUROS_APLICADO'];
+$vals=[$id_cliente,$id_usuario,$juros_aplicado];
+if($metColVenda){
+    $cols[]=$metColVenda;
+    $vals[]=$id_metodo;
+}
+if($hasDataVenda){$cols[]='DATA_VENDA';$vals[]=$data_venda;}
+if($hasFormaPag){$cols[]='FORMA_PAGAMENTO';$vals[]='À VISTA';}
 $cols=array_merge($cols,['VALOR_VENDA','VALOR_TOTAL']);
 $vals=array_merge($vals,[$valor_venda,$valor_total]);
 if($hasLiquido){$cols[]='VALOR_LIQUIDO';$vals[]=$valor_liquido;}
 $cols=array_merge($cols,['ID_FRETE','DATA_ENTREGA','DESCONTO','TELEFONE_CONTATO','RESPONSAVEL_CONTATO','CEP_ENTREGA','RUA_ENTREGA','BAIRRO_ENTREGA','ID_CIDADE','OBSERVACAO','STATUS','ID_EMPRESA']);
 $vals=array_merge($vals,[$id_frete,$data_entrega,$desconto,$telefone,$responsavel,$cep,$rua,$bairro,$id_cidade,$obs,$status,$id_empresa]);
 
-if($id){
-    $set=implode('=?, ',$cols).'=?';
-    $vals[]=$id;
-    $sql="UPDATE VENDAS SET $set WHERE ID=?";
-    $pdo->prepare($sql)->execute($vals);
-}else{
-    $place=implode(',',array_fill(0,count($cols),'?'));
-    $sql="INSERT INTO VENDAS (".implode(',', $cols).") VALUES ($place)";
-    $pdo->prepare($sql)->execute($vals);
-    $id=$pdo->lastInsertId();
-}
+$pdo->beginTransaction();
+try{
+    if($id){
+        $set=implode('=?, ',$cols).'=?';
+        $vals[]=$id;
+        $sql="UPDATE VENDAS SET $set WHERE ID=?";
+        $pdo->prepare($sql)->execute($vals);
+        // remove pagamentos antigos
+        $tablePag = tableExists($pdo,'VENDAS_PAGAMENTOS') ? 'VENDAS_PAGAMENTOS' : (tableExists($pdo,'VENDAS_PAGAMENTO') ? 'VENDAS_PAGAMENTO' : null);
+        if($tablePag){
+            $pdo->prepare("DELETE FROM {$tablePag} WHERE ID_VENDA=?")->execute([$id]);
+        }
+    }else{
+        $place=implode(',',array_fill(0,count($cols),'?'));
+        $sql="INSERT INTO VENDAS (".implode(',', $cols).") VALUES ($place)";
+        $pdo->prepare($sql)->execute($vals);
+        $id=$pdo->lastInsertId();
+        if(!$id) throw new Exception('Falha ao inserir venda');
+        $tablePag = tableExists($pdo,'VENDAS_PAGAMENTOS') ? 'VENDAS_PAGAMENTOS' : (tableExists($pdo,'VENDAS_PAGAMENTO') ? 'VENDAS_PAGAMENTO' : null);
+    }
 
-header('Location: vendas_list.php');
-exit;
+    if(!$tablePag){
+        throw new Exception('Tabela de pagamentos não encontrada');
+    }
+    $colMetodoPg = 'ID_METODO_PAGAMENTO';
+    if(!columnExists($pdo,$tablePag,$colMetodoPg)){
+        foreach(['ID_METODO','METODO_ID','ID_METODO_PAG','ID_METODO_PAGTO'] as $c){
+            if(columnExists($pdo,$tablePag,$c)){ $colMetodoPg = $c; break; }
+        }
+    }
+    $colsPg = "ID_VENDA, {$colMetodoPg}, VALOR";
+    $placePg = '?,?,?';
+    $stmtPg = $pdo->prepare("INSERT INTO {$tablePag} ($colsPg) VALUES ($placePg)");
+    foreach($pagamentos as $pg){
+        $valsPg = [$id,$pg['metodo_id'],$pg['valor']];
+        $stmtPg->execute($valsPg);
+    }
+
+    if(tableExists($pdo,'CONTAS_A_RECEBER')){
+        $pdo->prepare("DELETE FROM CONTAS_A_RECEBER WHERE ID_VENDA=?")->execute([$id]);
+        if($status === 'CONCLUÍDA'){
+            $stmtRec = $pdo->prepare("INSERT INTO CONTAS_A_RECEBER (ID_VENDA, ID_CLIENTE, VALOR, DATA_VENCIMENTO, STATUS, ID_EMPRESA) VALUES (?,?,?,?,?,?)");
+            foreach($pagamentos as $pg){
+                $stmtRec->execute([$id,$id_cliente,$pg['valor'],date('Y-m-d'),'PENDENTE',$id_empresa]);
+            }
+        }
+    }
+    if(tableExists($pdo,'FIDELIDADE_CLIENTE')){
+        $pts = $valor_total >= 500 ? 100 : 0;
+        if($pts > 0){
+            $stmtF = $pdo->prepare('INSERT INTO FIDELIDADE_CLIENTE (ID_CLIENTE,PONTOS,ULTIMA_ATUALIZACAO) VALUES (?,?,NOW()) ON DUPLICATE KEY UPDATE PONTOS=PONTOS+VALUES(PONTOS), ULTIMA_ATUALIZACAO=NOW()');
+            $stmtF->execute([$id_cliente,$pts]);
+        }
+    }
+    $pdo->commit();
+    header('Location: vendas_list.php');
+    exit;
+}catch(Exception $e){
+    $pdo->rollBack();
+    echo 'Erro: '.$e->getMessage();
+}
 ?>

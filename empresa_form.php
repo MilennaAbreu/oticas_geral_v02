@@ -58,7 +58,7 @@ include 'header.php';
         </div>
         <div>
             <label class="block mb-1">CNPJ</label>
-            <input type="text" name="cnpj" id="cnpj" value="<?= htmlspecialchars($cnpj) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full">
+            <input type="text" name="cnpj" id="cnpj" value="<?= htmlspecialchars($cnpj) ?>" required class="border-b-2 border-gray-300 px-3 py-2 w-full" data-mask="cnpj">
         </div>
         <div>
             <label class="block mb-1">CEP</label>
@@ -79,7 +79,7 @@ include 'header.php';
         </div>
         <div>
             <label class="block mb-1">Telefone</label>
-            <input type="text" name="telefone" value="<?= htmlspecialchars($telefone) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full">
+            <input type="text" name="telefone" value="<?= htmlspecialchars($telefone) ?>" class="border-b-2 border-gray-300 px-3 py-2 w-full" data-mask="telefone">
         </div>
         <div>
             <label class="block mb-1">Status</label>
@@ -95,21 +95,8 @@ include 'header.php';
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const cepField = document.getElementById('cep');
-    const enderecoField = document.getElementById('endereco');
     $('#cidade').select2({ width: '100%' });
     $('#cnpj').mask('00.000.000/0000-00');
-    $('#cep').mask('00.000-000');
-    cepField.addEventListener('blur', function() {
-        const cep = this.value.replace(/\D/g, '');
-        if (cep.length === 8) {
-            fetch('https://viacep.com.br/ws/' + cep + '/json/')
-                .then(res => res.json())
-                .then(data => {
-                    if (!data.erro) enderecoField.value = data.logradouro + ', ' + data.bairro + ', ' + data.localidade + '/' + data.uf;
-                });
-        }
-    });
 });
 </script>
 <?php include 'footer.php'; ?>

@@ -43,6 +43,9 @@ require_once 'permissions.php';
     table.dataTable tbody td, table.dataTable thead th {
       padding: 0.75rem 1rem !important;
     }
+    table.dataTable {
+      font-size: 0.875rem;
+    }
     .table-actions a {
       display: inline-flex;
       align-items: center;
@@ -113,6 +116,8 @@ require_once 'permissions.php';
             </ul>
           </li>
           <li><a href="condicoes_pagamento_list.php" class="menu-item">Condições de Pagamento</a></li>
+          <li><a href="metodo_pagamento_list.php" class="menu-item">Métodos de Pagamento</a></li>
+          <li><a href="juros_metodo_condicao_list.php" class="menu-item">Juros Maquininha</a></li>
           <li><a href="frete_list.php" class="menu-item">Frete</a></li>
         </ul>
       </li>

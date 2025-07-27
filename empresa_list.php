@@ -12,20 +12,20 @@ $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <button onclick="window.location.href='empresa_form.php'" class="bg-primary text-white rounded px-4 py-2 hover:bg-opacity-80 transition">Nova Empresa</button>
   </div>
   <table id="empresaTable" class="display w-full">
-    <thead><tr><th>ID</th><th>Nome</th><th>Endereço</th><th>Telefone</th><th>Ações</th></tr></thead>
+    <thead><tr><th>Ações</th><th>ID</th><th>Nome</th><th>Endereço</th><th>Telefone</th></tr></thead>
     <tbody>
     <?php foreach($empresas as $e): ?>
       <tr>
-        <td><?= $e['id'] ?></td>
-        <td><?= htmlspecialchars($e['nome']) ?></td>
-        <td><?= htmlspecialchars($e['endereco']) ?></td>
-        <td><?= htmlspecialchars($e['telefone']) ?></td>
         <td class="table-actions">
           <a href="empresa_form.php?id=<?= $e['id'] ?>" class="edit" title="Editar"><i class="fas fa-edit"></i></a>
           <?php if($canDelete): ?>
             <a href="empresa_delete.php?id=<?= $e['id'] ?>" onclick="return confirm('Excluir?');" class="delete" title="Deletar"><i class="fas fa-trash-alt"></i></a>
           <?php endif; ?>
         </td>
+        <td><?= $e['id'] ?></td>
+        <td><?= htmlspecialchars($e['nome']) ?></td>
+        <td><?= htmlspecialchars($e['endereco']) ?></td>
+        <td><?= htmlspecialchars($e['telefone']) ?></td>
       </tr>
     <?php endforeach; ?>
     </tbody>
